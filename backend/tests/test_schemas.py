@@ -62,3 +62,18 @@ def test_research_status_contains_the_public_workflow_states() -> None:
         "cancelled",
         "expired",
     ]
+
+
+def test_research_plan_accepts_deepseek_semantic_field_names() -> None:
+    plan = ResearchPlan.model_validate(
+        {
+            "sub_questions": [
+                {"id": 1, "question": "比较框架能力", "focus": "核心能力"},
+                {"id": 2, "question": "分析选型因素", "focus": "选型因素"},
+            ],
+            "report_focus": ["对比核心能力", "总结适用场景"],
+        }
+    )
+
+    assert plan.subqueries == ["比较框架能力", "分析选型因素"]
+    assert plan.focus == "对比核心能力；总结适用场景"

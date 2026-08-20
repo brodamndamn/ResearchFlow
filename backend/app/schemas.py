@@ -1,7 +1,7 @@
 from datetime import datetime
 from enum import StrEnum
 
-from pydantic import BaseModel, ConfigDict, Field, HttpUrl, field_validator
+from pydantic import BaseModel, ConfigDict, Field, HttpUrl, field_validator, model_validator
 
 
 class ResearchMode(StrEnum):
@@ -25,6 +25,37 @@ class ResearchStatus(StrEnum):
 class ResearchPlan(BaseModel):
     focus: str = Field(min_length=2, max_length=300)
     subqueries: list[str] = Field(min_length=1, max_length=6)
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_model_field_names(cls, value: object) -> object:
+        if not isinstance(value, dict):
+            return value
+        normalized = dict(value)
+        if "subqueries" not in normalized:
+            for alias in ("sub_questions", "questions", "queries"):
+                if alias in normalized:
+                    normalized["subqueries"] = normalized[alias]
+                    break
+        if "focus" not in normalized and "report_focus" in normalized:
+            normalized["focus"] = normalized["report_focus"]
+        if isinstance(normalized.get("subqueries"), list):
+            normalized["subqueries"] = [
+                (
+                    item.get("question")
+                    or item.get("query")
+                    or item.get("title")
+                    or ""
+                )
+                if isinstance(item, dict)
+                else item
+                for item in normalized["subqueries"]
+            ]
+        if isinstance(normalized.get("focus"), list):
+            normalized["focus"] = "；".join(
+                str(item).strip() for item in normalized["focus"] if str(item).strip()
+            )
+        return normalized
 
     @field_validator("subqueries")
     @classmethod
