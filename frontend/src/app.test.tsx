@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter } from 'react-router-dom'
+import { BrowserRouter, MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { AppRoutes } from './app'
@@ -161,7 +161,18 @@ describe('ResearchFlow 路由', () => {
     expect(screen.getByText('浏览器里保存的研究主题')).toBeInTheDocument()
   })
 
-  it('工作台导航栏可以返回上一页或直接回到主页', async () => {
+  it('站内进入工作台后可以真实返回上一页，主页链接与 Logo 保留 basename', async () => {
+    localStorage.setItem(
+      'researchflow:recent',
+      JSON.stringify([
+        {
+          id: 'research-1',
+          topic: '浏览器历史导航测试',
+          status: 'waiting_for_review',
+          updatedAt: '2026-08-20T08:01:00Z',
+        },
+      ]),
+    )
     vi.stubGlobal(
       'fetch',
       createFetchRouter({
@@ -170,17 +181,60 @@ describe('ResearchFlow 路由', () => {
       }),
     )
     const user = userEvent.setup()
-    renderApp('/run/research-1')
+    renderBrowserApp('/research/')
+
+    await user.click(await screen.findByText('浏览器历史导航测试'))
 
     expect(await screen.findByText('审核研究计划')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: '返回主页' })).toHaveAttribute('href', '/')
+    expect(window.location.pathname).toBe('/research/run/research-1')
+    expect(screen.getByRole('link', { name: '返回主页' })).toHaveAttribute(
+      'href',
+      '/research',
+    )
+    expect(screen.getByRole('link', { name: 'ResearchFlow 首页' })).toHaveAttribute(
+      'href',
+      '/research',
+    )
 
     await user.click(screen.getByRole('button', { name: '返回上一页' }))
 
     expect(
       await screen.findByRole('heading', { name: /把一个问题，研究成/ }),
     ).toBeInTheDocument()
+    expect(window.location.pathname).toBe('/research/')
     expect(screen.queryByRole('button', { name: '返回上一页' })).toBeNull()
+
+    await user.click(
+      await screen.findByRole('link', {
+        name: new RegExp(waitingSnapshot.topic),
+      }),
+    )
+    expect(await screen.findByText('审核研究计划')).toBeInTheDocument()
+    await user.click(screen.getByRole('link', { name: 'ResearchFlow 首页' }))
+    expect(
+      await screen.findByRole('heading', { name: /把一个问题，研究成/ }),
+    ).toBeInTheDocument()
+  })
+
+  it('直接打开工作台时返回按钮安全回到站内主页', async () => {
+    vi.stubGlobal(
+      'fetch',
+      createFetchRouter({
+        showcases,
+        snapshots: { 'research-1': waitingSnapshot },
+      }),
+    )
+    const user = userEvent.setup()
+    renderBrowserApp('/research/run/research-1')
+
+    expect(await screen.findByText('审核研究计划')).toBeInTheDocument()
+    expect(window.history.state.idx).toBe(0)
+    await user.click(screen.getByRole('button', { name: '返回上一页' }))
+
+    expect(
+      await screen.findByRole('heading', { name: /把一个问题，研究成/ }),
+    ).toBeInTheDocument()
+    expect(window.location.pathname).toBe('/research')
   })
 
   it('待审核工作台允许编辑计划、确认并取消', async () => {
@@ -274,6 +328,15 @@ function renderApp(path: string) {
     <MemoryRouter initialEntries={[path]}>
       <AppRoutes />
     </MemoryRouter>,
+  )
+}
+
+function renderBrowserApp(path: string) {
+  window.history.replaceState({ idx: 0 }, '', path)
+  return render(
+    <BrowserRouter basename="/research">
+      <AppRoutes />
+    </BrowserRouter>,
   )
 }
 
