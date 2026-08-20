@@ -1,9 +1,39 @@
+import importlib.util
+import shutil
+import sys
 from pathlib import Path
 
 import pytest
 from pydantic import ValidationError
 
 from app.config import Settings
+
+
+def test_settings_load_backend_env_when_process_cwd_is_elsewhere(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    backend_copy = tmp_path / "backend"
+    app_copy = backend_copy / "app"
+    app_copy.mkdir(parents=True)
+    (app_copy / "__init__.py").touch()
+    shutil.copy2(Path(__file__).parents[1] / "app" / "config.py", app_copy / "config.py")
+    (backend_copy / ".env").write_text(
+        "RESEARCHFLOW_MODEL_NAME=loaded-from-backend-env\n",
+        encoding="utf-8",
+    )
+    unrelated_cwd = tmp_path / "elsewhere"
+    unrelated_cwd.mkdir()
+    monkeypatch.chdir(unrelated_cwd)
+    monkeypatch.delenv("RESEARCHFLOW_MODEL_NAME", raising=False)
+
+    module_name = "isolated_researchflow_config"
+    spec = importlib.util.spec_from_file_location(module_name, app_copy / "config.py")
+    assert spec is not None and spec.loader is not None
+    config_module = importlib.util.module_from_spec(spec)
+    monkeypatch.setitem(sys.modules, module_name, config_module)
+    spec.loader.exec_module(config_module)
+
+    assert config_module.Settings().model_name == "loaded-from-backend-env"
 
 
 def test_settings_expose_safe_mvp_defaults() -> None:
