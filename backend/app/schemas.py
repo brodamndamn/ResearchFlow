@@ -60,6 +60,13 @@ class ResearchReport(BaseModel):
     source_ids: list[str] = Field(default_factory=list)
 
 
+class ResearchEvent(BaseModel):
+    phase: str
+    message: str
+    timestamp: datetime
+    status: str
+
+
 class ResearchSnapshot(BaseModel):
     run_id: str
     mode: ResearchMode
@@ -69,6 +76,7 @@ class ResearchSnapshot(BaseModel):
     sources: list[SourceRead] = Field(default_factory=list)
     report: ResearchReport | None = None
     metrics: dict[str, int | float] = Field(default_factory=dict)
+    events: list[ResearchEvent] = Field(default_factory=list)
     error: str | None = None
     created_at: datetime
     updated_at: datetime

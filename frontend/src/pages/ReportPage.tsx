@@ -71,7 +71,9 @@ export function ReportPage() {
               components={{
                 h2: ({ children }) => <h2 id={slugify(String(children))}>{children}</h2>,
                 h3: ({ children }) => <h3 id={slugify(String(children))}>{children}</h3>,
-                a: ({ children, href }) => <a href={href} target="_blank" rel="noreferrer">{children}</a>,
+                a: ({ children, href }) => safeExternalUrl(href || '') ? (
+                  <a href={href} target="_blank" rel="noreferrer">{children}</a>
+                ) : <span>{children}</span>,
               }}
             >
               {report.markdown}
@@ -81,9 +83,9 @@ export function ReportPage() {
           <section className="sources-section" id="sources">
             <div className="section-heading"><div><span className="kicker">证据可追溯</span><h2>参考来源</h2></div></div>
             <div className="source-list">
-              {report.sources.map((source) => (
+              {report.sources.map((source, index) => (
                 <div className="source-card" key={source.id}>
-                  <span className="source-number">[{source.id}]</span>
+                  <span className="source-number">[{index + 1}]</span>
                   <div>
                     {safeExternalUrl(source.url) ? (
                       <a href={source.url} target="_blank" rel="noreferrer">{source.title} <ExternalLink size={14} /></a>

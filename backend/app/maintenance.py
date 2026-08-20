@@ -12,6 +12,7 @@ from app.schemas import ResearchMode, ResearchStatus
 class CleanupResult:
     runs_deleted: int
     usage_rows_deleted: int
+    deleted_run_ids: tuple[str, ...] = ()
 
 
 async def cleanup_expired_data(
@@ -21,11 +22,16 @@ async def cleanup_expired_data(
     retention_days: int = 7,
 ) -> CleanupResult:
     cutoff = now - timedelta(days=retention_days)
-    runs_result = await session.execute(
-        delete(ResearchRun).where(
-            ResearchRun.created_at < cutoff,
-            ~ResearchRun.showcase.has(),
+    expired_ids = tuple(
+        await session.scalars(
+            select(ResearchRun.id).where(
+                ResearchRun.created_at < cutoff,
+                ~ResearchRun.showcase.has(),
+            )
         )
+    )
+    runs_result = await session.execute(
+        delete(ResearchRun).where(ResearchRun.id.in_(expired_ids))
     )
     usage_result = await session.execute(
         delete(RateUsage).where(RateUsage.usage_date < cutoff.date())
@@ -33,11 +39,13 @@ async def cleanup_expired_data(
     return CleanupResult(
         runs_deleted=runs_result.rowcount,
         usage_rows_deleted=usage_result.rowcount,
+        deleted_run_ids=expired_ids,
     )
 
 
 async def recover_interrupted_runs(session: AsyncSession, *, now: datetime) -> int:
     active_statuses = (
+        ResearchStatus.QUEUED,
         ResearchStatus.PLANNING,
         ResearchStatus.RESEARCHING,
         ResearchStatus.WRITING,

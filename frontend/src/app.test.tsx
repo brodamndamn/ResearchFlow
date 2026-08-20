@@ -64,7 +64,7 @@ const completedSnapshot: ResearchSnapshot = {
   report: {
     title: '主流大模型中文研究能力比较',
     markdown:
-      '## 核心结论\n\n中文事实核查仍需高质量来源支持。[1]\n\n<img src=x onerror="alert(1)">',
+      '## 核心结论\n\n中文事实核查仍需高质量来源支持。[1]\n\n[可信链接](https://example.com) [恶意链接](javascript:alert(1))\n\n<img src=x onerror="alert(1)">',
     sources: [
       {
         id: 1,
@@ -228,7 +228,14 @@ describe('ResearchFlow 路由', () => {
     expect(screen.getByText('2 个来源')).toBeInTheDocument()
     expect(screen.getByText('1 处引用')).toBeInTheDocument()
     expect(screen.getByText('73 秒')).toBeInTheDocument()
+    expect(screen.getByText('[1]')).toBeInTheDocument()
+    expect(screen.getByText('[2]')).toBeInTheDocument()
     expect(within(screen.getByTestId('markdown-report')).queryByRole('img')).toBeNull()
+    expect(screen.getByRole('link', { name: '可信链接' })).toHaveAttribute(
+      'href',
+      'https://example.com',
+    )
+    expect(screen.getByText('恶意链接').closest('a')).toBeNull()
     expect(screen.getByRole('link', { name: '模型评测方法说明' })).toHaveAttribute(
       'href',
       'https://example.com/evaluation',

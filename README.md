@@ -82,7 +82,7 @@ pnpm e2e
 3. 安装 Node.js、pnpm、Python 3.12 后，以 root 执行 `deploy/deploy.sh`。
 4. 访问 `http://服务器公网IP/research/`。
 
-部署脚本不会安装 MySQL、Redis、Celery 或 Docker。业务数据保存在 `/opt/researchflow/backend/data`，请按服务器备份策略定期备份该目录。
+systemd 服务会在启动命令中强制使用 `production` 环境，并在密钥仍为占位符或 HMAC 密钥不足 32 位时拒绝启动。部署脚本不会安装 MySQL、Redis、Celery 或 Docker。业务数据保存在 `/opt/researchflow/backend/data`，请按服务器备份策略定期备份该目录。
 
 ## 环境变量
 

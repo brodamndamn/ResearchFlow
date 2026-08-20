@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 from typing import Any
@@ -32,6 +33,7 @@ from app.schemas import ResearchCreate, ResearchPlan, ResearchSnapshot
 from app.task_queue import BoundedTaskQueue
 
 _AUTO_SERVICE = object()
+logger = logging.getLogger(__name__)
 
 
 def _service(request: Request) -> Any:
@@ -65,31 +67,35 @@ def create_app(*, service: Any = _AUTO_SERVICE) -> FastAPI:
         checkpoint_context = None
         cleanup_task = None
         try:
+            settings.checkpoint_database_path.parent.mkdir(parents=True, exist_ok=True)
+            checkpoint_context = AsyncSqliteSaver.from_conn_string(
+                str(settings.checkpoint_database_path)
+            )
+            checkpointer = await checkpoint_context.__aenter__()
+            await checkpointer.setup()
             await initialize_database(engine)
             async with sessions() as session:
                 await recover_interrupted_runs(session, now=datetime.now(UTC))
-                await cleanup_expired_data(
+                cleanup_result = await cleanup_expired_data(
                     session,
                     now=datetime.now(UTC),
                     retention_days=settings.retention_days,
                 )
                 await ensure_default_showcases(session, now=datetime.now(UTC))
+                await _delete_checkpoints(checkpointer, cleanup_result.deleted_run_ids)
                 await session.commit()
 
             missing_real_keys = (
                 settings.provider_mode == "real"
-                and (settings.model_api_key is None or settings.tavily_api_key is None)
+                and (
+                    not settings._is_configured(settings.model_api_key)
+                    or not settings._is_configured(settings.tavily_api_key)
+                )
             )
             if missing_real_keys:
                 app.state.research_service = None
                 app.state.ready_error = "缺少模型或 Tavily API Key"
             else:
-                settings.checkpoint_database_path.parent.mkdir(parents=True, exist_ok=True)
-                checkpoint_context = AsyncSqliteSaver.from_conn_string(
-                    str(settings.checkpoint_database_path)
-                )
-                checkpointer = await checkpoint_context.__aenter__()
-                await checkpointer.setup()
                 if settings.provider_mode == "fake":
                     model = FakeModelProvider()
                     search = FakeSearchProvider()
@@ -109,7 +115,7 @@ def create_app(*, service: Any = _AUTO_SERVICE) -> FastAPI:
                     settings, sessions, graph, queue
                 )
                 cleanup_task = asyncio.create_task(
-                    _daily_cleanup(sessions, settings.retention_days),
+                    _daily_cleanup(sessions, checkpointer, settings.retention_days),
                     name="researchflow:daily-cleanup",
                 )
             yield
@@ -208,14 +214,23 @@ def create_app(*, service: Any = _AUTO_SERVICE) -> FastAPI:
 app = create_app()
 
 
-async def _daily_cleanup(sessions, retention_days: int) -> None:
+async def _daily_cleanup(sessions, checkpointer, retention_days: int) -> None:
     while True:
         await asyncio.sleep(24 * 60 * 60)
-        async with sessions() as session:
-            await cleanup_expired_data(
-                session, now=datetime.now(UTC), retention_days=retention_days
-            )
-            await session.commit()
+        try:
+            async with sessions() as session:
+                result = await cleanup_expired_data(
+                    session, now=datetime.now(UTC), retention_days=retention_days
+                )
+                await _delete_checkpoints(checkpointer, result.deleted_run_ids)
+                await session.commit()
+        except Exception:
+            logger.exception("每日过期数据清理失败，将在下一周期重试")
+
+
+async def _delete_checkpoints(checkpointer, run_ids: tuple[str, ...]) -> None:
+    for run_id in run_ids:
+        await checkpointer.adelete_thread(run_id)
 
 
 def _json_error(status_code: int, detail: str):

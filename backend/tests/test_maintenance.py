@@ -68,6 +68,7 @@ async def test_cleanup_deletes_data_older_than_seven_days_and_keeps_boundary(
         usage_count = await session.scalar(select(func.count()).select_from(RateUsage))
 
     assert result.runs_deleted == 1
+    assert result.deleted_run_ids == (expired.id,)
     assert result.usage_rows_deleted == 1
     assert run_count == 2
     assert source_count == 1
@@ -119,10 +120,10 @@ async def test_startup_recovery_marks_active_runs_failed_but_keeps_reviewable_ru
         await session.refresh(waiting)
         await session.refresh(queued)
 
-    assert changed == 1
+    assert changed == 2
     assert researching.status is ResearchStatus.FAILED
     assert researching.error == "服务重启，研究任务执行中断"
     assert researching.updated_at.replace(tzinfo=UTC) == now
     assert waiting.status is ResearchStatus.WAITING_FOR_REVIEW
-    assert queued.status is ResearchStatus.QUEUED
+    assert queued.status is ResearchStatus.FAILED
     await engine.dispose()

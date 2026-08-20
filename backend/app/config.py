@@ -1,8 +1,8 @@
 from functools import cached_property
 from pathlib import Path
-from typing import Literal
+from typing import Literal, Self
 
-from pydantic import Field, SecretStr
+from pydantic import Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -32,6 +32,28 @@ class Settings(BaseSettings):
     queue_active_limit: int = Field(default=1, ge=1)
     queue_waiting_limit: int = Field(default=3, ge=0)
     retention_days: int = Field(default=7, ge=1)
+
+    @staticmethod
+    def _is_configured(secret: SecretStr | None) -> bool:
+        if secret is None:
+            return False
+        value = secret.get_secret_value().strip()
+        return bool(value) and "请替换" not in value
+
+    @model_validator(mode="after")
+    def validate_production_secrets(self) -> Self:
+        if self.environment != "production":
+            return self
+        if self.provider_mode != "real":
+            raise ValueError("生产环境必须使用真实 Provider")
+        if not self._is_configured(self.model_api_key) or not self._is_configured(
+            self.tavily_api_key
+        ):
+            raise ValueError("生产环境必须配置真实的模型与 Tavily API Key")
+        hmac_secret = self.ip_hash_secret.get_secret_value()
+        if len(hmac_secret) < 32 or hmac_secret == "development-only-change-me":
+            raise ValueError("生产环境 IP HMAC 密钥必须是至少 32 位的随机字符串")
+        return self
 
     @staticmethod
     def _sqlite_url(path: Path) -> str:

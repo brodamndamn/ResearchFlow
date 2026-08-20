@@ -1,5 +1,8 @@
 from pathlib import Path
 
+import pytest
+from pydantic import ValidationError
+
 from app.config import Settings
 
 
@@ -29,3 +32,13 @@ def test_settings_build_async_sqlite_urls_from_paths(tmp_path: Path) -> None:
     assert settings.database_url.startswith("sqlite+aiosqlite:///")
     assert settings.database_url.endswith("main.sqlite3")
     assert settings.checkpoint_database_url.endswith("checkpoints.sqlite3")
+
+
+def test_production_rejects_placeholder_keys_and_development_secret() -> None:
+    with pytest.raises(ValidationError):
+        Settings(
+            _env_file=None,
+            environment="production",
+            model_api_key="请替换为你的模型密钥",
+            tavily_api_key="请替换为你的Tavily密钥",
+        )

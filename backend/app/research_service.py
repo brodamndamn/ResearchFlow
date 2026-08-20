@@ -6,12 +6,12 @@ from datetime import UTC, date, datetime
 from typing import Any
 
 from langgraph.types import Command
-from sqlalchemy import delete, select
+from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from sqlalchemy.orm import selectinload
 
 from app.config import Settings
-from app.models import ResearchRun, Showcase, Source
+from app.models import RateUsage, ResearchRun, Showcase, Source
 from app.rate_limit import DailyRateLimiter
 from app.schemas import (
     ResearchMode,
@@ -22,7 +22,11 @@ from app.schemas import (
     SourceRead,
 )
 from app.security import hash_ip, resolve_client_ip, should_bypass_rate_limit
-from app.task_queue import BoundedTaskQueue, QueueCapacityExceeded
+from app.task_queue import (
+    BoundedTaskQueue,
+    DuplicateTaskError,
+    QueueCapacityExceeded,
+)
 
 TERMINAL_STATUSES = {
     ResearchStatus.COMPLETED,
@@ -58,6 +62,7 @@ class ResearchService:
             settings.quick_daily_limit, settings.deep_daily_limit
         )
         self._subscribers: dict[str, set[asyncio.Queue[dict[str, Any]]]] = {}
+        self._publish_locks: dict[str, asyncio.Lock] = {}
 
     async def create(
         self,
@@ -68,13 +73,15 @@ class ResearchService:
         forwarded_for: str | None,
     ) -> ResearchSnapshot:
         now = datetime.now(UTC)
+        usage_day = date.today()
         client_ip = resolve_client_ip(peer_ip, forwarded_for, self.settings.environment)
         client_hash = hash_ip(
             client_ip, self.settings.ip_hash_secret.get_secret_value()
         )
         async with self.sessions() as session:
-            if not should_bypass_rate_limit(peer_ip, self.settings.environment):
-                await self.rate_limiter.consume(session, client_hash, mode, date.today())
+            bypass_limit = should_bypass_rate_limit(peer_ip, self.settings.environment)
+            if not bypass_limit:
+                await self.rate_limiter.consume(session, client_hash, mode, usage_day)
             run = ResearchRun(
                 client_hash=client_hash,
                 mode=mode,
@@ -91,7 +98,13 @@ class ResearchService:
         try:
             await self._submit(run_id, lambda: self._execute_planning(run_id))
         except QueueCapacityExceeded as error:
-            await self._set_failure(run_id, "任务队列已满，请稍后重试")
+            await self._rollback_rejected_create(
+                run_id,
+                client_hash=client_hash,
+                mode=mode,
+                usage_day=usage_day,
+                restore_quota=not bypass_limit,
+            )
             raise ResearchQueueFull from error
         snapshot = await self.get(run_id)
         assert snapshot is not None
@@ -111,14 +124,32 @@ class ResearchService:
                 return None
             if run.status is not ResearchStatus.WAITING_FOR_REVIEW:
                 raise InvalidResearchState("当前任务不处于计划确认阶段")
-            run.plan = plan.model_dump(mode="json")
-            run.status = ResearchStatus.RESEARCHING
-            run.updated_at = datetime.now(UTC)
+            max_queries = 2 if run.mode is ResearchMode.QUICK else 4
+            if len(plan.subqueries) > max_queries:
+                mode_label = "快速" if run.mode is ResearchMode.QUICK else "深度"
+                raise InvalidResearchState(
+                    f"{mode_label}模式最多允许 {max_queries} 个子问题"
+                )
+            changed = await session.scalar(
+                update(ResearchRun)
+                .where(
+                    ResearchRun.id == run_id,
+                    ResearchRun.status == ResearchStatus.WAITING_FOR_REVIEW,
+                )
+                .values(
+                    plan=plan.model_dump(mode="json"),
+                    status=ResearchStatus.RESEARCHING,
+                    updated_at=datetime.now(UTC),
+                )
+                .returning(ResearchRun.id)
+            )
+            if changed is None:
+                raise InvalidResearchState("研究计划已被确认或任务状态已经变化")
             await session.commit()
 
         try:
             await self._submit(run_id, lambda: self._execute_research(run_id, plan))
-        except QueueCapacityExceeded as error:
+        except (QueueCapacityExceeded, DuplicateTaskError) as error:
             await self._set_failure(run_id, "任务队列已满，请稍后重试")
             raise ResearchQueueFull from error
         await self._publish_snapshot(run_id)
@@ -136,9 +167,11 @@ class ResearchService:
 
     async def event_stream(self, run_id: str) -> AsyncIterator[dict[str, Any]]:
         channel: asyncio.Queue[dict[str, Any]] = asyncio.Queue(maxsize=20)
-        self._subscribers.setdefault(run_id, set()).add(channel)
+        publish_lock = self._publish_locks.setdefault(run_id, asyncio.Lock())
         try:
-            snapshot = await self.get(run_id)
+            async with publish_lock:
+                self._subscribers.setdefault(run_id, set()).add(channel)
+                snapshot = await self.get(run_id)
             if snapshot is None:
                 return
             yield {"event": "snapshot", "data": snapshot.model_dump(mode="json")}
@@ -184,7 +217,14 @@ class ResearchService:
         ]
 
     async def _submit(self, run_id: str, work) -> None:
-        future = await self.queue.submit(run_id, work)
+        for attempt in range(5):
+            try:
+                future = await self.queue.submit(run_id, work)
+                break
+            except DuplicateTaskError:
+                if attempt == 4:
+                    raise
+                await asyncio.sleep(0.01)
 
         def consume_result(done: asyncio.Future[Any]) -> None:
             if not done.cancelled():
@@ -217,6 +257,7 @@ class ResearchService:
                 run.plan = plan.model_dump(mode="json")
                 run.status = ResearchStatus.WAITING_FOR_REVIEW
                 run.updated_at = datetime.now(UTC)
+                self._append_event(run, ResearchStatus.WAITING_FOR_REVIEW)
                 await session.commit()
             await self._publish_snapshot(run_id)
         except asyncio.CancelledError:
@@ -227,7 +268,7 @@ class ResearchService:
 
     async def _execute_research(self, run_id: str, plan: ResearchPlan) -> None:
         snapshot = await self.get(run_id)
-        if snapshot is None:
+        if snapshot is None or snapshot.status is not ResearchStatus.RESEARCHING:
             return
         timeout = self._timeout_for(snapshot.mode)
         try:
@@ -249,6 +290,10 @@ class ResearchService:
             run = await self._load_run(session, run_id)
             if run is None or run.status is ResearchStatus.CANCELLED:
                 return
+            completed_at = datetime.now(UTC)
+            created_at = run.created_at
+            if created_at.tzinfo is None:
+                created_at = created_at.replace(tzinfo=UTC)
             await session.execute(delete(Source).where(Source.run_id == run_id))
             persisted_sources: list[Source] = []
             for item in state.get("sources", []):
@@ -262,14 +307,22 @@ class ResearchService:
                 session.add(source)
                 persisted_sources.append(source)
             await session.flush()
-            run.snapshot = {"metrics": state.get("metrics", {})}
+            metrics = dict(state.get("metrics", {}))
+            metrics.update(
+                citation_count=len(persisted_sources),
+                duration_seconds=max(0, round((completed_at - created_at).total_seconds())),
+            )
+            snapshot_data = dict(run.snapshot or {})
+            snapshot_data["metrics"] = metrics
+            run.snapshot = snapshot_data
             run.report = {
                 "title": run.query,
                 "markdown": state.get("report", ""),
                 "source_ids": [source.id for source in persisted_sources],
             }
             run.status = ResearchStatus.COMPLETED
-            run.updated_at = datetime.now(UTC)
+            run.updated_at = completed_at
+            self._append_event(run, ResearchStatus.COMPLETED)
             await session.commit()
         await self._publish_snapshot(run_id)
 
@@ -322,6 +375,7 @@ class ResearchService:
                 return
             run.status = status
             run.updated_at = datetime.now(UTC)
+            self._append_event(run, status)
             await session.commit()
         await self._publish_snapshot(run_id)
 
@@ -333,21 +387,56 @@ class ResearchService:
             run.status = ResearchStatus.FAILED
             run.error = message
             run.updated_at = datetime.now(UTC)
+            self._append_event(run, ResearchStatus.FAILED)
             await session.commit()
         await self._publish_snapshot(run_id)
 
     async def _publish_snapshot(self, run_id: str) -> None:
-        snapshot = await self.get(run_id)
-        if snapshot is None:
-            return
-        item = {"event": "snapshot", "data": snapshot.model_dump(mode="json")}
-        for channel in tuple(self._subscribers.get(run_id, ())):
-            if channel.full():
-                try:
-                    channel.get_nowait()
-                except asyncio.QueueEmpty:
-                    pass
-            channel.put_nowait(item)
+        publish_lock = self._publish_locks.setdefault(run_id, asyncio.Lock())
+        async with publish_lock:
+            snapshot = await self.get(run_id)
+            if snapshot is None:
+                return
+            item = {"event": "snapshot", "data": snapshot.model_dump(mode="json")}
+            for channel in tuple(self._subscribers.get(run_id, ())):
+                if channel.full():
+                    try:
+                        channel.get_nowait()
+                    except asyncio.QueueEmpty:
+                        pass
+                channel.put_nowait(item)
+
+    async def _rollback_rejected_create(
+        self,
+        run_id: str,
+        *,
+        client_hash: str,
+        mode: ResearchMode,
+        usage_day: date,
+        restore_quota: bool,
+    ) -> None:
+        async with self.sessions() as session:
+            await session.execute(delete(ResearchRun).where(ResearchRun.id == run_id))
+            if restore_quota:
+                await session.execute(
+                    update(RateUsage)
+                    .where(
+                        RateUsage.client_hash == client_hash,
+                        RateUsage.mode == mode,
+                        RateUsage.usage_date == usage_day,
+                        RateUsage.count > 0,
+                    )
+                    .values(count=RateUsage.count - 1)
+                )
+                await session.execute(
+                    delete(RateUsage).where(
+                        RateUsage.client_hash == client_hash,
+                        RateUsage.mode == mode,
+                        RateUsage.usage_date == usage_day,
+                        RateUsage.count <= 0,
+                    )
+                )
+            await session.commit()
 
     @staticmethod
     async def _load_run(session: AsyncSession, run_id: str) -> ResearchRun | None:
@@ -371,6 +460,7 @@ class ResearchService:
             ],
             report=ResearchReport.model_validate(run.report) if run.report else None,
             metrics=(run.snapshot or {}).get("metrics", {}),
+            events=(run.snapshot or {}).get("events", []),
             error=run.error,
             created_at=run.created_at,
             updated_at=run.updated_at,
@@ -380,6 +470,42 @@ class ResearchService:
         if mode is ResearchMode.QUICK:
             return self.settings.quick_timeout_seconds
         return self.settings.deep_timeout_seconds
+
+    @staticmethod
+    def _append_event(run: ResearchRun, status: ResearchStatus) -> None:
+        messages = {
+            ResearchStatus.QUEUED: "任务已进入队列",
+            ResearchStatus.PLANNING: "正在生成研究计划",
+            ResearchStatus.WAITING_FOR_REVIEW: "研究计划等待确认",
+            ResearchStatus.RESEARCHING: "正在搜索并整理证据",
+            ResearchStatus.WRITING: "正在撰写中文报告",
+            ResearchStatus.VERIFYING: "正在校验事实与引用",
+            ResearchStatus.COMPLETED: "中文研究报告已完成",
+            ResearchStatus.FAILED: "研究任务执行失败",
+            ResearchStatus.CANCELLED: "研究任务已取消",
+            ResearchStatus.EXPIRED: "研究任务已过期",
+        }
+        snapshot_data = dict(run.snapshot or {})
+        events = [dict(item) for item in snapshot_data.get("events", [])]
+        for item in events:
+            if item.get("status") == "active":
+                item["status"] = "completed"
+        events.append(
+            {
+                "phase": status.value,
+                "message": messages[status],
+                "timestamp": run.updated_at.isoformat(),
+                "status": (
+                    "failed"
+                    if status is ResearchStatus.FAILED
+                    else "completed"
+                    if status in TERMINAL_STATUSES
+                    else "active"
+                ),
+            }
+        )
+        snapshot_data["events"] = events
+        run.snapshot = snapshot_data
 
     @staticmethod
     def _safe_error(error: Exception) -> str:

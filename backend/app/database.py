@@ -24,6 +24,8 @@ def create_engine(database: str | Path) -> AsyncEngine:
     def enable_sqlite_foreign_keys(dbapi_connection: object, _: object) -> None:
         cursor = dbapi_connection.cursor()  # type: ignore[attr-defined]
         cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.execute("PRAGMA busy_timeout=5000")
+        cursor.execute("PRAGMA journal_mode=WAL")
         cursor.close()
 
     return engine

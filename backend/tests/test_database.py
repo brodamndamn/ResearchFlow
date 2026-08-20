@@ -1,7 +1,7 @@
 from datetime import UTC, date, datetime
 from pathlib import Path
 
-from sqlalchemy import inspect, select
+from sqlalchemy import inspect, select, text
 
 from app.database import create_engine, create_session_factory, initialize_database
 from app.models import RateUsage, ResearchRun, Showcase, Source
@@ -18,6 +18,19 @@ async def test_initialize_database_creates_all_domain_tables(tmp_path: Path) -> 
             lambda sync_connection: inspect(sync_connection).get_table_names()
         )
     assert set(table_names) == {"rate_usage", "research_runs", "showcases", "sources"}
+    await engine.dispose()
+
+
+async def test_sqlite_uses_wal_and_waits_for_short_write_contention(tmp_path: Path) -> None:
+    engine = create_engine(tmp_path / "pragmas.sqlite3")
+    async with engine.connect() as connection:
+        foreign_keys = await connection.scalar(text("PRAGMA foreign_keys"))
+        busy_timeout = await connection.scalar(text("PRAGMA busy_timeout"))
+        journal_mode = await connection.scalar(text("PRAGMA journal_mode"))
+
+    assert foreign_keys == 1
+    assert busy_timeout == 5_000
+    assert journal_mode == "wal"
     await engine.dispose()
 
 
