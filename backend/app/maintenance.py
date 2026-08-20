@@ -269,7 +269,16 @@ async def ensure_default_showcases(session: AsyncSession, *, now: datetime) -> i
             "citation_count": len(example["sources"]),
             "duration_seconds": 128,
         }
-        actual_source_ids = {source.id for source in run.sources}
+        citation_source_ids = run.report.get("source_ids", [])
+        sources_by_id = {source.id: source for source in run.sources}
+        citation_sources = [sources_by_id.get(source_id) for source_id in citation_source_ids]
+        sources_match = len(citation_sources) == len(example["sources"]) and all(
+            source is not None
+            and source.url == expected["url"]
+            and source.title == expected["title"]
+            and source.snippet == expected["snippet"]
+            for source, expected in zip(citation_sources, example["sources"], strict=True)
+        )
         return (
             run.status is ResearchStatus.COMPLETED
             and run.mode is example["mode"]
@@ -279,10 +288,8 @@ async def ensure_default_showcases(session: AsyncSession, *, now: datetime) -> i
             and run.showcase.summary == example["summary"]
             and run.report.get("title") == example["title"]
             and run.report.get("markdown") == example["report"]
-            and set(run.report.get("source_ids", [])) == actual_source_ids
             and len(run.sources) == len(example["sources"])
-            and {source.url for source in run.sources}
-            == {source["url"] for source in example["sources"]}
+            and sources_match
             and (run.snapshot or {}).get("showcase_version")
             == DEFAULT_SHOWCASE_VERSION
             and (run.snapshot or {}).get("metrics") == expected_metrics

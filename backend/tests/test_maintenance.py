@@ -161,8 +161,11 @@ async def test_default_showcases_repair_damaged_seed_data(tmp_path: Path) -> Non
             select(ResearchRun).where(ResearchRun.client_hash == "showcase").limit(1)
         )
         assert damaged is not None
-        damaged.snapshot = {"showcase_version": -1}
-        damaged.report = {"title": damaged.query, "markdown": "损坏", "source_ids": []}
+        source_ids = list(damaged.report["source_ids"])
+        damaged.report = {**damaged.report, "source_ids": list(reversed(source_ids))}
+        source = await session.get(Source, source_ids[0])
+        assert source is not None
+        source.title = "损坏的来源标题"
         await session.commit()
 
     async with factory() as session:
@@ -180,6 +183,10 @@ async def test_default_showcases_repair_damaged_seed_data(tmp_path: Path) -> Non
     assert source_count == 12
     assert all(run.snapshot["showcase_version"] == 1 for run in system_runs)
     assert all(len(run.report["source_ids"]) == 4 for run in system_runs)
+    async with factory() as session:
+        assert not await session.scalar(
+            select(func.count()).select_from(Source).where(Source.title == "损坏的来源标题")
+        )
     await engine.dispose()
 
 
