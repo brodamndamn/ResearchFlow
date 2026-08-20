@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { StrictMode } from 'react'
 import { BrowserRouter, MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -184,6 +185,106 @@ describe('ResearchFlow 路由', () => {
     })
   })
 
+  it('某条旧记录请求挂起时，其他模式仍能独立补全', async () => {
+    localStorage.setItem(
+      'researchflow:recent',
+      JSON.stringify([
+        {
+          id: 'research-hanging',
+          topic: '暂时无法响应的研究',
+          status: 'planning',
+          updatedAt: '2026-08-20T08:00:00Z',
+        },
+        {
+          id: 'research-1',
+          topic: '可以正常补全的研究',
+          status: 'waiting_for_review',
+          updatedAt: '2026-08-20T08:01:00Z',
+        },
+      ]),
+    )
+    const router = createFetchRouter({
+      showcases,
+      snapshots: { 'research-1': waitingSnapshot },
+    })
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((input: RequestInfo | URL, init?: RequestInit) =>
+        String(input).endsWith('/research-hanging')
+          ? new Promise<Response>(() => undefined)
+          : router(input, init),
+      ),
+    )
+
+    renderApp('/')
+
+    const recentSection = screen
+      .getByRole('heading', { name: '最近研究' })
+      .closest('section')
+    expect(await within(recentSection!).findByText('深度研究')).toBeInTheDocument()
+  })
+
+  it('旧记录模式请求临时失败时会重试一次', async () => {
+    localStorage.setItem(
+      'researchflow:recent',
+      JSON.stringify([
+        {
+          id: 'research-1',
+          topic: '需要重试的研究',
+          status: 'waiting_for_review',
+          updatedAt: '2026-08-20T08:01:00Z',
+        },
+      ]),
+    )
+    let researchRequests = 0
+    const router = createFetchRouter({ showcases, snapshots: { 'research-1': waitingSnapshot } })
+    const fetcher = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      if (String(input).endsWith('/research-1')) {
+        researchRequests += 1
+        if (researchRequests === 1) return Promise.resolve(json({ detail: '暂时失败' }, 503))
+      }
+      return router(input, init)
+    })
+    vi.stubGlobal('fetch', fetcher)
+
+    renderApp('/')
+
+    const recentSection = screen
+      .getByRole('heading', { name: '最近研究' })
+      .closest('section')
+    expect(await within(recentSection!).findByText('深度研究')).toBeInTheDocument()
+    expect(researchRequests).toBe(2)
+  })
+
+  it('StrictMode 下同一条旧记录只发起一次成功请求', async () => {
+    localStorage.setItem(
+      'researchflow:recent',
+      JSON.stringify([
+        {
+          id: 'research-1',
+          topic: '开发模式去重研究',
+          status: 'waiting_for_review',
+          updatedAt: '2026-08-20T08:01:00Z',
+        },
+      ]),
+    )
+    const fetcher = createFetchRouter({
+      showcases,
+      snapshots: { 'research-1': waitingSnapshot },
+    })
+    vi.stubGlobal('fetch', fetcher)
+
+    renderStrictApp('/')
+
+    const recentSection = screen
+      .getByRole('heading', { name: '最近研究' })
+      .closest('section')
+    expect(await within(recentSection!).findByText('深度研究')).toBeInTheDocument()
+    expect(
+      fetcher.mock.calls.filter(([path]) => String(path).endsWith('/research-1')),
+    ).toHaveLength(1)
+  })
+
   it('站内进入工作台后可以真实返回上一页，主页链接与 Logo 保留 basename', async () => {
     localStorage.setItem(
       'researchflow:recent',
@@ -360,6 +461,16 @@ function renderBrowserApp(path: string) {
     <BrowserRouter basename="/research">
       <AppRoutes />
     </BrowserRouter>,
+  )
+}
+
+function renderStrictApp(path: string) {
+  return render(
+    <StrictMode>
+      <MemoryRouter initialEntries={[path]}>
+        <AppRoutes />
+      </MemoryRouter>
+    </StrictMode>,
   )
 }
 

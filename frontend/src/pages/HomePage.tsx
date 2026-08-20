@@ -2,7 +2,7 @@ import { ArrowRight, Clock3, Compass, Gauge, SearchCheck, Sparkles } from 'lucid
 import { FormEvent, useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
-import { createResearch, getResearch, getShowcases } from '../lib/api'
+import { ApiError, createResearch, getResearch, getShowcases } from '../lib/api'
 import {
   readRecentResearch,
   saveRecentResearch,
@@ -12,6 +12,56 @@ import type { ResearchMode, Showcase } from '../lib/types'
 
 const MIN_TOPIC = 10
 const MAX_TOPIC = 300
+const RECENT_MODE_TIMEOUT_MS = 5_000
+const RECENT_MODE_RETRY_DELAY_MS = 150
+const recentModeRequests = new Map<string, Promise<ResearchMode>>()
+
+function timeoutAfter<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = window.setTimeout(
+      () => reject(new Error('读取研究模式超时')),
+      timeoutMs,
+    )
+    promise.then(
+      (value) => {
+        window.clearTimeout(timer)
+        resolve(value)
+      },
+      (error) => {
+        window.clearTimeout(timer)
+        reject(error)
+      },
+    )
+  })
+}
+
+function retryable(error: unknown): boolean {
+  return !(error instanceof ApiError) || error.status === 429 || error.status >= 500
+}
+
+async function requestRecentMode(id: string): Promise<ResearchMode> {
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      const snapshot = await timeoutAfter(getResearch(id), RECENT_MODE_TIMEOUT_MS)
+      return snapshot.mode
+    } catch (error) {
+      if (attempt === 1 || !retryable(error)) throw error
+      await new Promise((resolve) => window.setTimeout(resolve, RECENT_MODE_RETRY_DELAY_MS))
+    }
+  }
+  throw new Error('无法读取研究模式')
+}
+
+function getRecentMode(id: string): Promise<ResearchMode> {
+  const existing = recentModeRequests.get(id)
+  if (existing) return existing
+
+  const request = requestRecentMode(id).finally(() => {
+    if (recentModeRequests.get(id) === request) recentModeRequests.delete(id)
+  })
+  recentModeRequests.set(id, request)
+  return request
+}
 
 export function HomePage() {
   const navigate = useNavigate()
@@ -40,13 +90,14 @@ export function HomePage() {
     if (legacyItems.length === 0) return
 
     let active = true
-    void Promise.allSettled(
-      legacyItems.map(async (item) => {
-        const snapshot = await getResearch(item.id)
-        updateRecentResearchMode(item.id, snapshot.mode)
-      }),
-    ).then(() => {
-      if (active) setRecent(readRecentResearch())
+    legacyItems.forEach((item) => {
+      void getRecentMode(item.id).then((mode) => {
+        if (!active) return
+        updateRecentResearchMode(item.id, mode)
+        setRecent(readRecentResearch())
+      }).catch(() => {
+        // 旧任务可能已过期；保留记录但不显示未经确认的模式。
+      })
     })
     return () => {
       active = false
