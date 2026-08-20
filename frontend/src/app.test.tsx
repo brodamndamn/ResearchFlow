@@ -130,11 +130,22 @@ describe('ResearchFlow 路由', () => {
     expect(form).not.toBeNull()
     expect(quickCard).not.toBeNull()
     expect(form).toHaveClass('research-form')
+    expect(form!.closest('.section-wrap')).not.toBeNull()
     expect(quickCard).toHaveClass('mode-card')
+    expect(styles).toMatch(/\.section-wrap\s*\{[^}]*width:\s*min\(1120px,/)
     expect(styles).toMatch(/\.research-form\s*\{[^}]*width:\s*100%[^}]*max-width:\s*none[^}]*padding:\s*32px/)
     expect(styles).toMatch(/\.research-form\s*>\s*textarea\s*\{[^}]*font-size:\s*18px/)
     expect(styles).toMatch(/\.mode-card\s*\{[^}]*min-height:\s*88px/)
     expect(styles).toMatch(/\.research-form\s*>\s*\.primary-button\s*\{[^}]*min-height:\s*52px/)
+
+    const tabletStart = styles.indexOf('@media (max-width: 800px)')
+    const phoneStart = styles.indexOf('@media (max-width: 520px)')
+    const tabletStyles = styles.slice(tabletStart, phoneStart)
+    expect(tabletStart).toBeGreaterThan(-1)
+    expect(phoneStart).toBeGreaterThan(tabletStart)
+    expect(tabletStyles).toContain('.research-form { padding: 24px; }')
+    expect(tabletStyles).toContain('.research-form > textarea { min-height: 160px;')
+    expect(tabletStyles).toContain('.mode-card { min-height: 78px;')
   })
 
   it('创建深度研究后保存最近记录并进入工作台', async () => {

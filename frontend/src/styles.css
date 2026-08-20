@@ -164,6 +164,15 @@ textarea:focus, input:focus { border-color: var(--cyan); box-shadow: 0 0 0 3px r
   .site-header { padding-inline: 20px; }
   .header-note { display: none; }
   .hero { padding-top: 58px; }
+  .research-form { padding: 24px; }
+  .research-form > label, .research-form legend { font-size: 15px; }
+  .research-form > textarea { min-height: 160px; padding: 14px 15px; font-size: 17px; }
+  .input-meta { margin-bottom: 18px; }
+  .mode-grid { gap: 10px; margin-bottom: 20px; }
+  .mode-card { min-height: 78px; padding: 14px 16px; }
+  .mode-card strong { font-size: 16px; }
+  .mode-card small { font-size: 13px; }
+  .research-form > .primary-button { min-height: 50px; }
   .mode-grid, .showcase-grid, .workspace-grid, .report-layout { grid-template-columns: 1fr; }
   .showcase-card { min-height: 220px; }
   .section-heading, .workspace-header { align-items: flex-start; flex-direction: column; }
@@ -182,12 +191,6 @@ textarea:focus, input:focus { border-color: var(--cyan); box-shadow: 0 0 0 3px r
   .section-wrap { width: min(100% - 24px, 1120px); }
   .hero h1 { font-size: 37px; }
   .research-form, .review-card { padding: 17px; }
-  .research-form > label, .research-form legend { font-size: 15px; }
-  .research-form > textarea { min-height: 160px; padding: 14px; font-size: 17px; }
-  .mode-card { min-height: 84px; padding: 14px; }
-  .mode-card strong { font-size: 16px; }
-  .mode-card small { font-size: 13px; }
-  .research-form > .primary-button { min-height: 50px; }
   .recent-list a { gap: 9px; padding-inline: 13px; }
   .recent-mode-pill { padding-inline: 7px; font-size: 10px; }
   .process-strip { gap: 7px; font-size: 11px; }
