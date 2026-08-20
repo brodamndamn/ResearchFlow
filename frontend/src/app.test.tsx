@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { AppRoutes } from './app'
 import type { ResearchSnapshot, Showcase } from './lib/types'
+import styles from './styles.css?raw'
 
 const showcases: Showcase[] = [
   {
@@ -115,6 +116,25 @@ describe('ResearchFlow 路由', () => {
 
     fireEvent.change(topic, { target: { value: '研'.repeat(301) } })
     expect(screen.getByText('最多输入 300 个字')).toBeInTheDocument()
+  })
+
+  it('桌面研究表单与案例区等宽并使用更大的输入控件', () => {
+    vi.stubGlobal('fetch', createFetchRouter({ showcases }))
+    renderApp('/')
+
+    const textarea = screen.getByLabelText('研究主题')
+    const form = textarea.closest('form')
+    const quickCard = screen.getByRole('radio', { name: /快速研究/ }).closest('label')
+    const submit = screen.getByRole('button', { name: '开始研究' })
+
+    expect(form).not.toBeNull()
+    expect(quickCard).not.toBeNull()
+    expect(form).toHaveClass('research-form')
+    expect(quickCard).toHaveClass('mode-card')
+    expect(styles).toMatch(/\.research-form\s*\{[^}]*width:\s*100%[^}]*max-width:\s*none[^}]*padding:\s*32px/)
+    expect(styles).toMatch(/\.research-form\s*>\s*textarea\s*\{[^}]*font-size:\s*18px/)
+    expect(styles).toMatch(/\.mode-card\s*\{[^}]*min-height:\s*88px/)
+    expect(styles).toMatch(/\.research-form\s*>\s*\.primary-button\s*\{[^}]*min-height:\s*52px/)
   })
 
   it('创建深度研究后保存最近记录并进入工作台', async () => {

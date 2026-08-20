@@ -42,23 +42,25 @@ footer { color: #688397; font-size: 12px; text-align: center; padding: 50px 20px
 .hero h1 span { color: var(--cyan-soft); }
 .hero-copy { color: #a2bacb; max-width: 690px; margin: 0 auto 34px; font-size: 17px; }
 .panel { border: 1px solid var(--line); background: linear-gradient(145deg, rgba(17, 42, 65, .92), rgba(9, 25, 42, .92)); border-radius: 18px; box-shadow: 0 24px 70px rgba(0, 0, 0, .2); }
-.research-form { max-width: 790px; padding: 24px; margin: 0 auto; text-align: left; }
+.research-form { width: 100%; max-width: none; padding: 32px; margin: 0 auto; text-align: left; }
 label, legend { color: #d8e6ee; font-weight: 700; font-size: 14px; }
+.research-form > label, .research-form legend { font-size: 16px; }
 textarea, input { width: 100%; border: 1px solid rgba(115, 156, 184, .3); color: #eef8fb; background: rgba(4, 14, 25, .7); border-radius: 11px; outline: 0; padding: 13px 14px; resize: vertical; }
 textarea:focus, input:focus { border-color: var(--cyan); box-shadow: 0 0 0 3px rgba(56, 217, 197, .1); }
-.research-form > textarea { margin-top: 8px; font-size: 16px; }
-.input-meta { color: var(--muted); display: flex; justify-content: space-between; font-size: 12px; margin: 6px 2px 18px; }
+.research-form > textarea { min-height: 180px; margin-top: 10px; padding: 17px 18px; font-size: 18px; line-height: 1.7; }
+.input-meta { color: var(--muted); display: flex; justify-content: space-between; font-size: 13px; margin: 8px 2px 22px; }
 .danger-text { color: #ff9e9e; }
-.mode-grid { border: 0; padding: 0; margin: 0 0 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.mode-grid legend { margin-bottom: 8px; }
-.mode-card { border: 1px solid var(--line); border-radius: 12px; padding: 13px; display: flex; align-items: center; gap: 12px; cursor: pointer; color: var(--muted); }
+.mode-grid { border: 0; padding: 0; margin: 0 0 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.mode-grid legend { margin-bottom: 10px; }
+.mode-card { min-height: 88px; border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px; display: flex; align-items: center; gap: 15px; cursor: pointer; color: var(--muted); }
 .mode-card.selected { border-color: rgba(56, 217, 197, .65); background: rgba(56, 217, 197, .07); color: var(--cyan); }
 .mode-card input { position: absolute; opacity: 0; width: 1px; }
 .mode-card span { display: flex; flex-direction: column; color: #e4f0f5; }
-.mode-card small { font-weight: 400; color: var(--muted); }
+.mode-card strong { font-size: 17px; }
+.mode-card small { font-size: 14px; font-weight: 400; color: var(--muted); }
 .primary-button, .ghost-button { border: 0; border-radius: 11px; min-height: 44px; padding: 0 19px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; font-weight: 800; }
 .primary-button { color: #03201d; background: var(--cyan); box-shadow: 0 10px 30px rgba(56, 217, 197, .18); }
-.research-form > .primary-button { width: 100%; }
+.research-form > .primary-button { width: 100%; min-height: 52px; font-size: 16px; }
 .primary-button:disabled { opacity: .38; cursor: not-allowed; }
 .ghost-button { border: 1px solid var(--line); color: #cbdde7; background: rgba(7, 20, 34, .45); }
 .process-strip { max-width: 680px; margin: 22px auto 0; display: flex; justify-content: center; align-items: center; gap: 16px; color: #7893a6; font-size: 13px; }
@@ -180,6 +182,12 @@ textarea:focus, input:focus { border-color: var(--cyan); box-shadow: 0 0 0 3px r
   .section-wrap { width: min(100% - 24px, 1120px); }
   .hero h1 { font-size: 37px; }
   .research-form, .review-card { padding: 17px; }
+  .research-form > label, .research-form legend { font-size: 15px; }
+  .research-form > textarea { min-height: 160px; padding: 14px; font-size: 17px; }
+  .mode-card { min-height: 84px; padding: 14px; }
+  .mode-card strong { font-size: 16px; }
+  .mode-card small { font-size: 13px; }
+  .research-form > .primary-button { min-height: 50px; }
   .recent-list a { gap: 9px; padding-inline: 13px; }
   .recent-mode-pill { padding-inline: 7px; font-size: 10px; }
   .process-strip { gap: 7px; font-size: 11px; }
