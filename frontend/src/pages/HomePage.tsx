@@ -2,8 +2,12 @@ import { ArrowRight, Clock3, Compass, Gauge, SearchCheck, Sparkles } from 'lucid
 import { FormEvent, useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
-import { createResearch, getShowcases } from '../lib/api'
-import { readRecentResearch, saveRecentResearch } from '../lib/recent'
+import { createResearch, getResearch, getShowcases } from '../lib/api'
+import {
+  readRecentResearch,
+  saveRecentResearch,
+  updateRecentResearchMode,
+} from '../lib/recent'
 import type { ResearchMode, Showcase } from '../lib/types'
 
 const MIN_TOPIC = 10
@@ -17,7 +21,7 @@ export function HomePage() {
   const [showcaseError, setShowcaseError] = useState('')
   const [submitError, setSubmitError] = useState('')
   const [submitting, setSubmitting] = useState(false)
-  const recent = readRecentResearch()
+  const [recent, setRecent] = useState(readRecentResearch)
   const length = topic.trim().length
   const valid = length >= MIN_TOPIC && length <= MAX_TOPIC
 
@@ -26,6 +30,24 @@ export function HomePage() {
     getShowcases()
       .then((items) => active && setShowcases(items.slice(0, 3)))
       .catch(() => active && setShowcaseError('精选案例暂时无法加载'))
+    return () => {
+      active = false
+    }
+  }, [])
+
+  useEffect(() => {
+    const legacyItems = recent.filter((item) => !item.mode)
+    if (legacyItems.length === 0) return
+
+    let active = true
+    void Promise.allSettled(
+      legacyItems.map(async (item) => {
+        const snapshot = await getResearch(item.id)
+        updateRecentResearchMode(item.id, snapshot.mode)
+      }),
+    ).then(() => {
+      if (active) setRecent(readRecentResearch())
+    })
     return () => {
       active = false
     }
@@ -144,7 +166,15 @@ export function HomePage() {
             {recent.map((item) => (
               <Link key={item.id} to={`/run/${item.id}`}>
                 <Clock3 size={17} />
-                <span><strong>{item.topic}</strong><small>{statusText(item.status)}</small></span>
+                <span className="recent-copy">
+                  <strong>{item.topic}</strong>
+                  <small>{statusText(item.status)}</small>
+                </span>
+                {item.mode ? (
+                  <span className={`recent-mode-pill mode-${item.mode}`}>
+                    {item.mode === 'deep' ? '深度研究' : '快速研究'}
+                  </span>
+                ) : null}
                 <ArrowRight size={17} />
               </Link>
             ))}

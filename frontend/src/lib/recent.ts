@@ -1,4 +1,4 @@
-import type { ResearchSnapshot, ResearchStatus } from './types'
+import type { ResearchMode, ResearchSnapshot, ResearchStatus } from './types'
 
 const STORAGE_KEY = 'researchflow:recent'
 const MAX_RECENT = 8
@@ -6,6 +6,7 @@ const MAX_RECENT = 8
 export interface RecentResearch {
   id: string
   topic: string
+  mode?: ResearchMode
   status: ResearchStatus
   updatedAt: string
 }
@@ -22,6 +23,7 @@ export function saveRecentResearch(snapshot: ResearchSnapshot): void {
   const item: RecentResearch = {
     id: snapshot.id,
     topic: snapshot.topic,
+    mode: snapshot.mode,
     status: snapshot.status,
     updatedAt: snapshot.updatedAt,
   }
@@ -30,4 +32,11 @@ export function saveRecentResearch(snapshot: ResearchSnapshot): void {
     STORAGE_KEY,
     JSON.stringify([item, ...remaining].slice(0, MAX_RECENT)),
   )
+}
+
+export function updateRecentResearchMode(id: string, mode: ResearchMode): void {
+  const updated = readRecentResearch().map((item) =>
+    item.id === id ? { ...item, mode } : item,
+  )
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(updated))
 }

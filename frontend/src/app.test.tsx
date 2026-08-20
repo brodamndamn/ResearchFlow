@@ -138,11 +138,11 @@ describe('ResearchFlow 路由', () => {
       mode: 'deep',
     })
     expect(JSON.parse(localStorage.getItem('researchflow:recent') || '[]')).toEqual([
-      expect.objectContaining({ id: 'research-1' }),
+      expect.objectContaining({ id: 'research-1', mode: 'deep' }),
     ])
   })
 
-  it('首页显示当前浏览器保存的最近研究', async () => {
+  it('最近研究显示模式，并自动补全旧记录缺失的模式', async () => {
     localStorage.setItem(
       'researchflow:recent',
       JSON.stringify([
@@ -152,13 +152,36 @@ describe('ResearchFlow 路由', () => {
           status: 'waiting_for_review',
           updatedAt: '2026-08-20T08:01:00Z',
         },
+        {
+          id: 'research-2',
+          topic: '快速了解的新研究主题',
+          mode: 'quick',
+          status: 'completed',
+          updatedAt: '2026-08-20T08:02:00Z',
+        },
       ]),
     )
-    vi.stubGlobal('fetch', createFetchRouter({ showcases }))
+    vi.stubGlobal(
+      'fetch',
+      createFetchRouter({ showcases, snapshots: { 'research-1': waitingSnapshot } }),
+    )
     renderApp('/')
 
-    expect(screen.getByRole('heading', { name: '最近研究' })).toBeInTheDocument()
+    const recentSection = screen
+      .getByRole('heading', { name: '最近研究' })
+      .closest('section')
+    expect(recentSection).not.toBeNull()
     expect(screen.getByText('浏览器里保存的研究主题')).toBeInTheDocument()
+    expect(within(recentSection!).getByText('快速研究')).toBeInTheDocument()
+    expect(await within(recentSection!).findByText('深度研究')).toBeInTheDocument()
+    await waitFor(() => {
+      const saved = JSON.parse(localStorage.getItem('researchflow:recent') || '[]')
+      expect(saved).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ id: 'research-1', mode: 'deep' }),
+        ]),
+      )
+    })
   })
 
   it('站内进入工作台后可以真实返回上一页，主页链接与 Logo 保留 basename', async () => {
