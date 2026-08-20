@@ -1,3 +1,5 @@
+from tavily.errors import TimeoutError as TavilyTimeoutError
+
 from app.agent.types import SearchDocument
 from app.providers.tavily import TavilySearchProvider
 
@@ -45,3 +47,32 @@ async def test_search_requests_clean_text_and_maps_complete_result() -> None:
         "include_answer": False,
     }
 
+
+class FlakyTavilyClient:
+    def __init__(self) -> None:
+        self.calls = 0
+
+    async def search(self, **kwargs):
+        self.calls += 1
+        if self.calls < 3:
+            raise TavilyTimeoutError(1)
+        return {
+            "results": [
+                {
+                    "url": "https://example.com/recovered",
+                    "title": "重试成功",
+                    "raw_content": "正文",
+                    "score": 0.8,
+                }
+            ]
+        }
+
+
+async def test_search_retries_timeout_at_most_twice() -> None:
+    client = FlakyTavilyClient()
+    provider = TavilySearchProvider(client=client, retry_wait_seconds=0)
+
+    result = await provider.search("测试重试", 2)
+
+    assert client.calls == 3
+    assert result[0].title == "重试成功"
