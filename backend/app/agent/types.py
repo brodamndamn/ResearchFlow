@@ -1,27 +1,12 @@
 from __future__ import annotations
 
-from enum import StrEnum
 from typing import TypedDict
 
-from pydantic import BaseModel, Field, HttpUrl, field_validator
+from pydantic import BaseModel, Field, HttpUrl
 
+from app.schemas import ResearchMode, ResearchPlan
 
-class ResearchMode(StrEnum):
-    QUICK = "quick"
-    DEEP = "deep"
-
-
-class ResearchPlan(BaseModel):
-    focus: str = Field(min_length=2, max_length=300)
-    subqueries: list[str] = Field(min_length=1, max_length=6)
-
-    @field_validator("subqueries")
-    @classmethod
-    def normalize_subqueries(cls, value: list[str]) -> list[str]:
-        normalized = [item.strip() for item in value if item.strip()]
-        if not normalized:
-            raise ValueError("至少需要一个检索子问题")
-        return list(dict.fromkeys(normalized))
+__all__ = ["ResearchMode", "ResearchPlan"]
 
 
 class SearchDocument(BaseModel):
@@ -55,4 +40,3 @@ class ResearchState(TypedDict, total=False):
     evidence: list[dict]
     report: str
     metrics: dict[str, int | float]
-

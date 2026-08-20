@@ -2,7 +2,7 @@ from functools import cached_property
 from pathlib import Path
 from typing import Literal
 
-from pydantic import Field
+from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -16,16 +16,22 @@ class Settings(BaseSettings):
     )
 
     environment: Literal["development", "production", "test"] = "development"
+    provider_mode: Literal["real", "fake"] = "real"
     model_name: str = "deepseek-v4-flash"
+    model_api_key: SecretStr | None = None
+    model_base_url: str = "https://api.deepseek.com"
+    tavily_api_key: SecretStr | None = None
+    ip_hash_secret: SecretStr = SecretStr("development-only-change-me")
     database_path: Path = Path("data/researchflow.sqlite3")
     checkpoint_database_path: Path = Path("data/checkpoints.sqlite3")
 
     quick_daily_limit: int = Field(default=3, ge=1)
     deep_daily_limit: int = Field(default=1, ge=1)
-    quick_timeout_seconds: int = Field(default=180, ge=1)
-    deep_timeout_seconds: int = Field(default=900, ge=1)
+    quick_timeout_seconds: int = Field(default=90, ge=1)
+    deep_timeout_seconds: int = Field(default=180, ge=1)
     queue_active_limit: int = Field(default=1, ge=1)
     queue_waiting_limit: int = Field(default=3, ge=0)
+    retention_days: int = Field(default=7, ge=1)
 
     @staticmethod
     def _sqlite_url(path: Path) -> str:

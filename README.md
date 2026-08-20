@@ -57,7 +57,7 @@ pnpm install
 pnpm dev
 ```
 
-本地开发环境只有真实回环客户端会绕过每日限额。自动化测试使用 Fake Provider，不需要填写 API Key。
+本地开发环境只有真实回环客户端会绕过每日限额。自动化测试使用 Fake Provider，不需要填写 API Key；如果只想本机体验完整流程，可在 `.env` 中设置 `RESEARCHFLOW_PROVIDER_MODE=fake`。
 
 ## 验证命令
 
@@ -88,13 +88,15 @@ pnpm e2e
 
 | 变量 | 用途 | 默认值 |
 | --- | --- | --- |
-| `APP_ENV` | `development` 或 `production` | `development` |
-| `LLM_BASE_URL` | OpenAI 兼容模型地址 | `https://api.deepseek.com` |
-| `LLM_MODEL` | 模型 ID | `deepseek-v4-flash` |
-| `LLM_API_KEY` | DeepSeek API 密钥 | 无 |
-| `TAVILY_API_KEY` | Tavily API 密钥 | 无 |
-| `IP_HASH_SECRET` | IP HMAC 密钥 | 无 |
-| `TRUSTED_PROXIES` | 可以传递真实 IP 的代理 | `127.0.0.1,::1` |
+| `RESEARCHFLOW_ENVIRONMENT` | `development` 或 `production` | `development` |
+| `RESEARCHFLOW_PROVIDER_MODE` | `real` 使用真实 API，`fake` 用于本机演示 | `real` |
+| `RESEARCHFLOW_MODEL_BASE_URL` | OpenAI 兼容模型地址 | `https://api.deepseek.com` |
+| `RESEARCHFLOW_MODEL_NAME` | 模型 ID | `deepseek-v4-flash` |
+| `RESEARCHFLOW_MODEL_API_KEY` | DeepSeek API 密钥 | 无 |
+| `RESEARCHFLOW_TAVILY_API_KEY` | Tavily API 密钥 | 无 |
+| `RESEARCHFLOW_IP_HASH_SECRET` | IP HMAC 密钥 | 仅供本机开发的默认值 |
+| `RESEARCHFLOW_DATABASE_PATH` | 业务数据库路径 | `data/researchflow.sqlite3` |
+| `RESEARCHFLOW_CHECKPOINT_DATABASE_PATH` | LangGraph 检查点路径 | `data/checkpoints.sqlite3` |
 
 ## 范围边界
 

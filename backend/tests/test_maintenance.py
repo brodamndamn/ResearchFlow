@@ -4,8 +4,12 @@ from pathlib import Path
 from sqlalchemy import func, select
 
 from app.database import create_engine, create_session_factory, initialize_database
-from app.maintenance import cleanup_expired_data, recover_interrupted_runs
-from app.models import RateUsage, ResearchRun, Source
+from app.maintenance import (
+    cleanup_expired_data,
+    ensure_default_showcases,
+    recover_interrupted_runs,
+)
+from app.models import RateUsage, ResearchRun, Showcase, Source
 from app.schemas import ResearchMode, ResearchStatus
 
 
@@ -31,10 +35,14 @@ async def test_cleanup_deletes_data_older_than_seven_days_and_keeps_boundary(
     async with factory() as session:
         expired = make_run(now - timedelta(days=8))
         expired.sources.append(Source(url="https://old.example", title="旧来源"))
+        featured = make_run(now - timedelta(days=30))
+        featured.sources.append(Source(url="https://featured.example", title="精选来源"))
+        featured.showcase = Showcase(title="精选案例", summary="不应过期")
         retained = make_run(now - timedelta(days=7))
         session.add_all(
             [
                 expired,
+                featured,
                 retained,
                 RateUsage(
                     client_hash="client-1",
@@ -61,13 +69,37 @@ async def test_cleanup_deletes_data_older_than_seven_days_and_keeps_boundary(
 
     assert result.runs_deleted == 1
     assert result.usage_rows_deleted == 1
-    assert run_count == 1
-    assert source_count == 0
+    assert run_count == 2
+    assert source_count == 1
     assert usage_count == 1
     await engine.dispose()
 
 
-async def test_startup_recovery_marks_only_executing_runs_failed(tmp_path: Path) -> None:
+async def test_default_showcases_are_idempotent_and_openable(tmp_path: Path) -> None:
+    engine = create_engine(tmp_path / "showcases.sqlite3")
+    await initialize_database(engine)
+    factory = create_session_factory(engine)
+    now = datetime(2026, 1, 10, 12, tzinfo=UTC)
+
+    async with factory() as session:
+        first = await ensure_default_showcases(session, now=now)
+        second = await ensure_default_showcases(session, now=now)
+        await session.commit()
+        showcases = (await session.scalars(select(Showcase))).all()
+        runs = (await session.scalars(select(ResearchRun))).all()
+
+    assert first == 3
+    assert second == 0
+    assert len(showcases) == 3
+    assert len(runs) == 3
+    assert all(run.status is ResearchStatus.COMPLETED for run in runs)
+    assert all(run.report for run in runs)
+    await engine.dispose()
+
+
+async def test_startup_recovery_marks_active_runs_failed_but_keeps_reviewable_runs(
+    tmp_path: Path,
+) -> None:
     engine = create_engine(tmp_path / "recovery.sqlite3")
     await initialize_database(engine)
     factory = create_session_factory(engine)
@@ -75,19 +107,22 @@ async def test_startup_recovery_marks_only_executing_runs_failed(tmp_path: Path)
     now = datetime(2026, 1, 2, tzinfo=UTC)
 
     async with factory() as session:
-        executing = make_run(before, ResearchStatus.EXECUTING)
+        researching = make_run(before, ResearchStatus.RESEARCHING)
+        waiting = make_run(before, ResearchStatus.WAITING_FOR_REVIEW)
         queued = make_run(before, ResearchStatus.QUEUED)
-        session.add_all([executing, queued])
+        session.add_all([researching, waiting, queued])
         await session.commit()
 
         changed = await recover_interrupted_runs(session, now=now)
         await session.commit()
-        await session.refresh(executing)
+        await session.refresh(researching)
+        await session.refresh(waiting)
         await session.refresh(queued)
 
     assert changed == 1
-    assert executing.status is ResearchStatus.FAILED
-    assert executing.error == "服务重启，研究任务执行中断"
-    assert executing.updated_at.replace(tzinfo=UTC) == now
+    assert researching.status is ResearchStatus.FAILED
+    assert researching.error == "服务重启，研究任务执行中断"
+    assert researching.updated_at.replace(tzinfo=UTC) == now
+    assert waiting.status is ResearchStatus.WAITING_FOR_REVIEW
     assert queued.status is ResearchStatus.QUEUED
     await engine.dispose()

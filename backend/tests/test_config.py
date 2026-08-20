@@ -13,8 +13,10 @@ def test_settings_expose_safe_mvp_defaults() -> None:
     assert settings.deep_daily_limit == 1
     assert settings.queue_active_limit == 1
     assert settings.queue_waiting_limit == 3
-    assert settings.quick_timeout_seconds > 0
-    assert settings.deep_timeout_seconds > settings.quick_timeout_seconds
+    assert settings.quick_timeout_seconds == 90
+    assert settings.deep_timeout_seconds == 180
+    assert settings.model_base_url == "https://api.deepseek.com"
+    assert settings.retention_days == 7
 
 
 def test_settings_build_async_sqlite_urls_from_paths(tmp_path: Path) -> None:

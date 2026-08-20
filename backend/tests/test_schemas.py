@@ -25,7 +25,10 @@ def test_domain_schemas_form_a_serializable_research_snapshot() -> None:
         mode=ResearchMode.QUICK,
         status=ResearchStatus.COMPLETED,
         query="测试问题",
-        plan=ResearchPlan(steps=["检索", "归纳"]),
+        plan=ResearchPlan(
+            focus="聚焦工程落地",
+            subqueries=["检索现状", "归纳案例"],
+        ),
         sources=[source],
         report=ResearchReport(title="研究报告", markdown="结论", source_ids=["source-1"]),
         created_at=datetime(2026, 1, 1, tzinfo=UTC),
@@ -36,10 +39,26 @@ def test_domain_schemas_form_a_serializable_research_snapshot() -> None:
 
     assert payload["mode"] == "quick"
     assert payload["status"] == "completed"
-    assert payload["plan"]["steps"] == ["检索", "归纳"]
+    assert payload["plan"]["focus"] == "聚焦工程落地"
+    assert payload["plan"]["subqueries"] == ["检索现状", "归纳案例"]
     assert payload["report"]["source_ids"] == ["source-1"]
 
 
 def test_source_schema_rejects_non_http_urls() -> None:
     with pytest.raises(ValidationError):
         SourceRead(id="source-1", url="javascript:alert(1)", title="危险来源")
+
+
+def test_research_status_contains_the_public_workflow_states() -> None:
+    assert [status.value for status in ResearchStatus] == [
+        "queued",
+        "planning",
+        "waiting_for_review",
+        "researching",
+        "writing",
+        "verifying",
+        "completed",
+        "failed",
+        "cancelled",
+        "expired",
+    ]
