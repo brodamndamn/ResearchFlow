@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { StrictMode } from 'react'
 import { BrowserRouter, MemoryRouter } from 'react-router-dom'
@@ -95,6 +95,7 @@ describe('ResearchFlow 路由', () => {
   })
 
   afterEach(() => {
+    vi.useRealTimers()
     vi.unstubAllGlobals()
     vi.restoreAllMocks()
   })
@@ -283,6 +284,42 @@ describe('ResearchFlow 路由', () => {
     expect(
       fetcher.mock.calls.filter(([path]) => String(path).endsWith('/research-1')),
     ).toHaveLength(1)
+  })
+
+  it('旧记录模式请求超时时会取消底层连接', async () => {
+    vi.useFakeTimers()
+    localStorage.setItem(
+      'researchflow:recent',
+      JSON.stringify([
+        {
+          id: 'research-timeout',
+          topic: '需要取消连接的研究',
+          status: 'planning',
+          updatedAt: '2026-08-20T08:00:00Z',
+        },
+      ]),
+    )
+    let abortCount = 0
+    const router = createFetchRouter({ showcases })
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+        if (!String(input).endsWith('/research-timeout')) return router(input, init)
+        return new Promise<Response>((_resolve, reject) => {
+          init?.signal?.addEventListener('abort', () => {
+            abortCount += 1
+            reject(new DOMException('请求已取消', 'AbortError'))
+          })
+        })
+      }),
+    )
+
+    renderApp('/')
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(10_200)
+    })
+
+    expect(abortCount).toBe(2)
   })
 
   it('站内进入工作台后可以真实返回上一页，主页链接与 Logo 保留 basename', async () => {

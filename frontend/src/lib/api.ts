@@ -73,10 +73,11 @@ export function createResearch(
 export function getResearch(
   id: string,
   fetcher?: Fetcher,
+  signal?: AbortSignal,
 ): Promise<ResearchSnapshot> {
   return request<unknown>(
     apiPath(`research/${encodeURIComponent(id)}`),
-    undefined,
+    signal ? { signal } : undefined,
     fetcher,
   ).then(normalizeSnapshot)
 }

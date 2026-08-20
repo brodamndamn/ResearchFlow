@@ -16,12 +16,16 @@ const RECENT_MODE_TIMEOUT_MS = 5_000
 const RECENT_MODE_RETRY_DELAY_MS = 150
 const recentModeRequests = new Map<string, Promise<ResearchMode>>()
 
-function timeoutAfter<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+function timeoutAfter<T>(
+  promise: Promise<T>,
+  timeoutMs: number,
+  onTimeout: () => void,
+): Promise<T> {
   return new Promise((resolve, reject) => {
-    const timer = window.setTimeout(
-      () => reject(new Error('读取研究模式超时')),
-      timeoutMs,
-    )
+    const timer = window.setTimeout(() => {
+      onTimeout()
+      reject(new Error('读取研究模式超时'))
+    }, timeoutMs)
     promise.then(
       (value) => {
         window.clearTimeout(timer)
@@ -42,7 +46,12 @@ function retryable(error: unknown): boolean {
 async function requestRecentMode(id: string): Promise<ResearchMode> {
   for (let attempt = 0; attempt < 2; attempt += 1) {
     try {
-      const snapshot = await timeoutAfter(getResearch(id), RECENT_MODE_TIMEOUT_MS)
+      const controller = new AbortController()
+      const snapshot = await timeoutAfter(
+        getResearch(id, undefined, controller.signal),
+        RECENT_MODE_TIMEOUT_MS,
+        () => controller.abort(),
+      )
       return snapshot.mode
     } catch (error) {
       if (attempt === 1 || !retryable(error)) throw error
