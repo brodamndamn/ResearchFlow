@@ -88,13 +88,58 @@ async def test_default_showcases_are_idempotent_and_openable(tmp_path: Path) -> 
         await session.commit()
         showcases = (await session.scalars(select(Showcase))).all()
         runs = (await session.scalars(select(ResearchRun))).all()
+        source_counts = dict(
+            (
+                await session.execute(
+                    select(Source.run_id, func.count(Source.id)).group_by(Source.run_id)
+                )
+            ).all()
+        )
 
     assert first == 3
     assert second == 0
     assert len(showcases) == 3
     assert len(runs) == 3
+    assert {showcase.title for showcase in showcases} == {
+        "AI 编程助手是否真正提升研发效率",
+        "中国低空经济商业化进展",
+        "新能源汽车动力电池回收的产业闭环",
+    }
     assert all(run.status is ResearchStatus.COMPLETED for run in runs)
     assert all(run.report for run in runs)
+    assert all(source_counts[run.id] >= 4 for run in runs)
+    assert all("## 核心结论" in run.report["markdown"] for run in runs)
+    assert all("## 局限与风险" in run.report["markdown"] for run in runs)
+    await engine.dispose()
+
+
+async def test_default_showcases_replace_legacy_system_examples(tmp_path: Path) -> None:
+    engine = create_engine(tmp_path / "showcase-migration.sqlite3")
+    await initialize_database(engine)
+    factory = create_session_factory(engine)
+    now = datetime(2026, 1, 10, 12, tzinfo=UTC)
+
+    async with factory() as session:
+        legacy = make_run(now)
+        legacy.client_hash = "showcase"
+        legacy.query = "联网研究 Agent 是否需要向量数据库"
+        legacy.showcase = Showcase(title=legacy.query, summary="旧的简单案例")
+        session.add(legacy)
+        await session.commit()
+
+        created = await ensure_default_showcases(session, now=now)
+        await session.commit()
+        titles = set(await session.scalars(select(Showcase.title)))
+        system_count = await session.scalar(
+            select(func.count()).select_from(ResearchRun).where(
+                ResearchRun.client_hash == "showcase"
+            )
+        )
+
+    assert created == 3
+    assert "联网研究 Agent 是否需要向量数据库" not in titles
+    assert "AI 编程助手是否真正提升研发效率" in titles
+    assert system_count == 3
     await engine.dispose()
 
 
