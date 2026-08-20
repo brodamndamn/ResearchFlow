@@ -448,6 +448,15 @@ class ResearchService:
 
     @staticmethod
     def _snapshot(run: ResearchRun) -> ResearchSnapshot:
+        report_data = run.report or {}
+        source_order = {
+            source_id: index
+            for index, source_id in enumerate(report_data.get("source_ids", []))
+        }
+        ordered_sources = sorted(
+            run.sources,
+            key=lambda source: (source_order.get(source.id, len(source_order)), source.id),
+        )
         return ResearchSnapshot(
             run_id=run.id,
             mode=run.mode,
@@ -456,7 +465,7 @@ class ResearchService:
             plan=ResearchPlan.model_validate(run.plan) if run.plan else None,
             sources=[
                 SourceRead(id=source.id, url=source.url, title=source.title, snippet=source.snippet)
-                for source in run.sources
+                for source in ordered_sources
             ],
             report=ResearchReport.model_validate(run.report) if run.report else None,
             metrics=(run.snapshot or {}).get("metrics", {}),

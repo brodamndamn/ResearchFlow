@@ -124,7 +124,9 @@ async def test_default_showcases_replace_legacy_system_examples(tmp_path: Path) 
         legacy.client_hash = "showcase"
         legacy.query = "联网研究 Agent 是否需要向量数据库"
         legacy.showcase = Showcase(title=legacy.query, summary="旧的简单案例")
-        session.add(legacy)
+        user_showcase = make_run(now)
+        user_showcase.showcase = Showcase(title="用户保留案例", summary="不能被系统迁移删除")
+        session.add_all([legacy, user_showcase])
         await session.commit()
 
         created = await ensure_default_showcases(session, now=now)
@@ -139,7 +141,45 @@ async def test_default_showcases_replace_legacy_system_examples(tmp_path: Path) 
     assert created == 3
     assert "联网研究 Agent 是否需要向量数据库" not in titles
     assert "AI 编程助手是否真正提升研发效率" in titles
+    assert "用户保留案例" in titles
     assert system_count == 3
+    await engine.dispose()
+
+
+async def test_default_showcases_repair_damaged_seed_data(tmp_path: Path) -> None:
+    engine = create_engine(tmp_path / "showcase-repair.sqlite3")
+    await initialize_database(engine)
+    factory = create_session_factory(engine)
+    now = datetime(2026, 1, 10, 12, tzinfo=UTC)
+
+    async with factory() as session:
+        await ensure_default_showcases(session, now=now)
+        await session.commit()
+
+    async with factory() as session:
+        damaged = await session.scalar(
+            select(ResearchRun).where(ResearchRun.client_hash == "showcase").limit(1)
+        )
+        assert damaged is not None
+        damaged.snapshot = {"showcase_version": -1}
+        damaged.report = {"title": damaged.query, "markdown": "损坏", "source_ids": []}
+        await session.commit()
+
+    async with factory() as session:
+        repaired = await ensure_default_showcases(session, now=now)
+        await session.commit()
+        system_runs = (
+            await session.scalars(
+                select(ResearchRun).where(ResearchRun.client_hash == "showcase")
+            )
+        ).all()
+        source_count = await session.scalar(select(func.count()).select_from(Source))
+
+    assert repaired == 3
+    assert len(system_runs) == 3
+    assert source_count == 12
+    assert all(run.snapshot["showcase_version"] == 1 for run in system_runs)
+    assert all(len(run.report["source_ids"]) == 4 for run in system_runs)
     await engine.dispose()
 
 

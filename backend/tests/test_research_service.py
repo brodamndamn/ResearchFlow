@@ -1,4 +1,5 @@
 import asyncio
+from datetime import UTC, datetime
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -8,7 +9,7 @@ from sqlalchemy import func, select
 
 from app.config import Settings
 from app.database import create_engine, create_session_factory, initialize_database
-from app.models import RateUsage, ResearchRun
+from app.models import RateUsage, ResearchRun, Source
 from app.research_service import ResearchQueueFull, ResearchService
 from app.schemas import ResearchMode, ResearchPlan, ResearchStatus
 from app.task_queue import BoundedTaskQueue
@@ -76,6 +77,34 @@ async def make_service(tmp_path: Path):
     queue = BoundedTaskQueue(active_limit=1, waiting_limit=3)
     service = ResearchService(settings, sessions, FakeGraph(), queue)
     return service, queue, engine
+
+
+def test_snapshot_orders_sources_by_report_citation_ids() -> None:
+    now = datetime(2026, 1, 10, 12, tzinfo=UTC)
+    run = ResearchRun(
+        id="run-1",
+        client_hash="showcase",
+        mode=ResearchMode.DEEP,
+        query="引用顺序",
+        status=ResearchStatus.COMPLETED,
+        report={
+            "title": "引用顺序",
+            "markdown": "第一条 [1]，第二条 [2]。",
+            "source_ids": ["source-1", "source-2"],
+        },
+        created_at=now,
+        updated_at=now,
+    )
+    run.sources.extend(
+        [
+            Source(id="source-2", url="https://example.com/2", title="第二条"),
+            Source(id="source-1", url="https://example.com/1", title="第一条"),
+        ]
+    )
+
+    snapshot = ResearchService._snapshot(run)
+
+    assert [source.id for source in snapshot.sources] == ["source-1", "source-2"]
 
 
 async def test_service_persists_plan_resume_report_sources_and_metrics(tmp_path: Path) -> None:

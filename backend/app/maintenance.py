@@ -6,9 +6,12 @@ from datetime import datetime, timedelta
 
 from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.models import RateUsage, ResearchRun, Showcase, Source
 from app.schemas import ResearchMode, ResearchStatus
+
+DEFAULT_SHOWCASE_VERSION = 1
 
 
 @dataclass(frozen=True, slots=True)
@@ -240,15 +243,52 @@ async def ensure_default_showcases(session: AsyncSession, *, now: datetime) -> i
         },
     ]
 
-    expected_titles = {example["title"] for example in examples}
-    existing_titles = set(
-        await session.scalars(
-            select(Showcase.title)
-            .join(ResearchRun, Showcase.run_id == ResearchRun.id)
-            .where(ResearchRun.client_hash == "showcase")
+    examples_by_title = {example["title"]: example for example in examples}
+    existing_runs = (
+        (
+            await session.scalars(
+                select(ResearchRun)
+                .options(
+                    selectinload(ResearchRun.sources),
+                    selectinload(ResearchRun.showcase),
+                )
+                .where(ResearchRun.client_hash == "showcase")
+            )
         )
+        .unique()
+        .all()
     )
-    if existing_titles == expected_titles:
+
+    def matches_seed(run: ResearchRun) -> bool:
+        example = examples_by_title.get(run.query)
+        if example is None or run.showcase is None or run.report is None:
+            return False
+        expected_metrics = {
+            "search_calls": len(example["subqueries"]),
+            "source_count": len(example["sources"]),
+            "citation_count": len(example["sources"]),
+            "duration_seconds": 128,
+        }
+        actual_source_ids = {source.id for source in run.sources}
+        return (
+            run.status is ResearchStatus.COMPLETED
+            and run.mode is example["mode"]
+            and run.plan
+            == {"focus": example["focus"], "subqueries": example["subqueries"]}
+            and run.showcase.title == example["title"]
+            and run.showcase.summary == example["summary"]
+            and run.report.get("title") == example["title"]
+            and run.report.get("markdown") == example["report"]
+            and set(run.report.get("source_ids", [])) == actual_source_ids
+            and len(run.sources) == len(example["sources"])
+            and {source.url for source in run.sources}
+            == {source["url"] for source in example["sources"]}
+            and (run.snapshot or {}).get("showcase_version")
+            == DEFAULT_SHOWCASE_VERSION
+            and (run.snapshot or {}).get("metrics") == expected_metrics
+        )
+
+    if len(existing_runs) == len(examples) and all(matches_seed(run) for run in existing_runs):
         return 0
 
     await session.execute(delete(ResearchRun).where(ResearchRun.client_hash == "showcase"))
@@ -262,6 +302,7 @@ async def ensure_default_showcases(session: AsyncSession, *, now: datetime) -> i
             status=ResearchStatus.COMPLETED,
             plan={"focus": example["focus"], "subqueries": example["subqueries"]},
             snapshot={
+                "showcase_version": DEFAULT_SHOWCASE_VERSION,
                 "metrics": {
                     "search_calls": len(example["subqueries"]),
                     "source_count": len(example["sources"]),
