@@ -161,6 +161,28 @@ describe('ResearchFlow 路由', () => {
     expect(screen.getByText('浏览器里保存的研究主题')).toBeInTheDocument()
   })
 
+  it('工作台导航栏可以返回上一页或直接回到主页', async () => {
+    vi.stubGlobal(
+      'fetch',
+      createFetchRouter({
+        showcases,
+        snapshots: { 'research-1': waitingSnapshot },
+      }),
+    )
+    const user = userEvent.setup()
+    renderApp('/run/research-1')
+
+    expect(await screen.findByText('审核研究计划')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: '返回主页' })).toHaveAttribute('href', '/')
+
+    await user.click(screen.getByRole('button', { name: '返回上一页' }))
+
+    expect(
+      await screen.findByRole('heading', { name: /把一个问题，研究成/ }),
+    ).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '返回上一页' })).toBeNull()
+  })
+
   it('待审核工作台允许编辑计划、确认并取消', async () => {
     const fetcher = createFetchRouter({
       snapshots: { 'research-1': waitingSnapshot },
