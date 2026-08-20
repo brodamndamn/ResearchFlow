@@ -20,3 +20,4 @@ test-results/
 *.pem
 data/
 .worktrees/
+.pnpm-store/
