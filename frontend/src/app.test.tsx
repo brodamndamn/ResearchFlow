@@ -401,7 +401,7 @@ describe('ResearchFlow 路由', () => {
     })
   })
 
-  it('删除已完成的最近研究时只移除当前浏览器的本地记录', async () => {
+  it('移除最近研究前展示站内确认弹窗，取消不会删除记录', async () => {
     localStorage.setItem(
       'researchflow:recent',
       JSON.stringify([
@@ -423,46 +423,39 @@ describe('ResearchFlow 路由', () => {
     )
     const fetcher = createFetchRouter({ showcases })
     vi.stubGlobal('fetch', fetcher)
-    vi.spyOn(window, 'confirm').mockReturnValue(true)
     const user = userEvent.setup()
     renderApp('/')
 
-    await user.click(screen.getByRole('button', { name: '删除最近研究：需要删除的已完成报告' }))
+    await user.click(screen.getByRole('button', { name: '从最近研究移除：需要删除的已完成报告' }))
 
-    expect(window.confirm).toHaveBeenCalledWith('您确定要移除此记录吗？')
+    const dialog = screen.getByRole('dialog', { name: '移除最近研究' })
+    expect(dialog).toHaveTextContent('仅从当前浏览器的最近研究列表隐藏，不会删除报告。')
+    expect(styles).toMatch(/\.confirm-dialog-actions \.danger-button\s*\{[^}]*border-radius:\s*12px[^}]*color:\s*#fff[^}]*font-weight:\s*700/)
+    expect(screen.getByRole('button', { name: '取消' })).toHaveFocus()
+    await user.tab({ shift: true })
+    expect(screen.getByRole('button', { name: '确认移除' })).toHaveFocus()
+    await user.tab()
+    expect(screen.getByRole('button', { name: '取消' })).toHaveFocus()
+    expect(screen.getByText('需要删除的已完成报告')).toBeInTheDocument()
+    await user.click(within(dialog).getByRole('button', { name: '取消' }))
+
+    expect(screen.queryByRole('dialog', { name: '移除最近研究' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '从最近研究移除：需要删除的已完成报告' })).toHaveFocus()
+    expect(screen.getByText('需要删除的已完成报告')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: '从最近研究移除：需要删除的已完成报告' }))
+    await user.keyboard('{Escape}')
+
+    expect(screen.queryByRole('dialog', { name: '移除最近研究' })).not.toBeInTheDocument()
+    expect(screen.getByText('需要删除的已完成报告')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: '从最近研究移除：需要删除的已完成报告' }))
+    await user.click(screen.getByRole('button', { name: '确认移除' }))
+
     expect(fetcher.mock.calls.some(([, init]) => init?.method === 'DELETE')).toBe(false)
     expect(screen.queryByText('需要删除的已完成报告')).not.toBeInTheDocument()
     expect(screen.getByText('需要保留的本地研究记录')).toBeInTheDocument()
     expect(JSON.parse(localStorage.getItem('researchflow:recent') || '[]')).toEqual([
       expect.objectContaining({ id: 'recent-keep' }),
     ])
-  })
-
-  it('删除未完成的最近研究时只移除本地记录', async () => {
-    localStorage.setItem(
-      'researchflow:recent',
-      JSON.stringify([
-        {
-          id: 'recent-cancelled',
-          topic: '已经取消的本地研究记录',
-          mode: 'quick',
-          status: 'cancelled',
-          updatedAt: '2026-08-20T08:01:00Z',
-        },
-      ]),
-    )
-    const fetcher = createFetchRouter({ showcases })
-    vi.stubGlobal('fetch', fetcher)
-    vi.spyOn(window, 'confirm').mockReturnValue(true)
-    const user = userEvent.setup()
-    renderApp('/')
-
-    await user.click(screen.getByRole('button', { name: '删除最近研究：已经取消的本地研究记录' }))
-
-    expect(window.confirm).toHaveBeenCalledWith('您确定要移除此记录吗？')
-    expect(fetcher.mock.calls.some(([, init]) => init?.method === 'DELETE')).toBe(false)
-    expect(screen.queryByText('已经取消的本地研究记录')).not.toBeInTheDocument()
-    expect(localStorage.getItem('researchflow:recent')).toBe('[]')
   })
 
   it('最近研究为终态与进行中任务显示不同的状态徽标', async () => {
@@ -832,6 +825,97 @@ describe('ResearchFlow 路由', () => {
     expect(nightToggle.querySelector('svg.lucide-moon')).not.toBeNull()
   })
 
+  it('日间模式为操作按钮、锁定计划和状态标签提供清晰的对比色', () => {
+    expect(styles).toMatch(
+      /\.app-shell\[data-theme="light"\] \.primary-button\s*\{[^}]*color:\s*#12324a[^}]*background:\s*#b8f0e8/,
+    )
+    expect(styles).toMatch(
+      /\.app-shell\[data-theme="light"\] \.locked-plan-card\s*\{[^}]*filter:\s*none/,
+    )
+    expect(styles).toMatch(
+      /\.app-shell\[data-theme="light"\] \.locked-plan-card textarea:disabled,[\s\S]*?\.app-shell\[data-theme="light"\] \.locked-plan-card input:disabled\s*\{[^}]*color:\s*#496273[^}]*background:\s*#edf3f6/,
+    )
+    expect(styles).toMatch(
+      /\.app-shell\[data-theme="light"\] \.locked-plan-card \.primary-button:disabled\s*\{[^}]*color:\s*#536b7a[^}]*background:\s*#d7e1e7/,
+    )
+    expect(styles).toMatch(
+      /\.app-shell\[data-theme="light"\] \.workspace-page \.status-badge\.status-completed\s*\{[^}]*color:\s*#08776e[^}]*background:\s*#e4faf6/,
+    )
+    expect(styles).toMatch(
+      /\.app-shell\[data-theme="light"\] \.recent-mode-pill\.mode-quick\s*\{[^}]*color:\s*#2b7792[^}]*background:\s*#e8f8fc/,
+    )
+    expect(styles).toMatch(
+      /\.app-shell\[data-theme="light"\] \.eyebrow\s*\{[^}]*color:\s*#087c73[^}]*background:\s*#e0faf6/,
+    )
+  })
+
+  it('日间模式区分研究模式，并让品牌、非完成状态和时间线保持清晰', () => {
+    expect(styles).toMatch(
+      /\.app-shell\[data-theme="light"\] \.brand-mark\s*\{[^}]*color:\s*#0b4a56[^}]*background:\s*#82e5d6/,
+    )
+    expect(styles).toMatch(
+      /\.app-shell\[data-theme="light"\] \.recent-mode-pill\.mode-quick\s*\{[^}]*color:\s*#2b7792[^}]*background:\s*#e8f8fc/,
+    )
+    expect(styles).toMatch(
+      /\.app-shell\[data-theme="light"\] \.recent-mode-pill\.mode-deep\s*\{[^}]*color:\s*#08776e[^}]*background:\s*#dff8f3/,
+    )
+    expect(styles).toMatch(
+      /\.app-shell\[data-theme="light"\] \.status-failed,[\s\S]*?\.app-shell\[data-theme="light"\] \.recent-status\.status-failed\s*\{[^}]*color:\s*#b4232f[^}]*background:\s*#fff0f1/,
+    )
+    expect(styles).toMatch(
+      /\.app-shell\[data-theme="light"\] \.status-cancelled,[\s\S]*?\.app-shell\[data-theme="light"\] \.recent-status\.status-cancelled\s*\{[^}]*color:\s*#4f6575[^}]*background:\s*#e5eef2/,
+    )
+    expect(styles).toMatch(
+      /\.app-shell\[data-theme="light"\] \.workspace-page \.status-badge\.status-cancelled\s*\{[^}]*color:\s*#4f6575[^}]*background:\s*#e5eef2/,
+    )
+    expect(styles).toMatch(
+      /\.app-shell\[data-theme="light"\] \.timeline-dot\s*\{[^}]*color:\s*#0b4a56[^}]*background:\s*#b8eee8/,
+    )
+  })
+
+  it('日间模式使用浅色操作按钮，并为每个进行中阶段提供不同且清晰的状态', () => {
+    expect(styles).toMatch(
+      /\.app-shell\[data-theme="light"\] \.primary-button\s*\{[^}]*background:\s*#b8f0e8/,
+    )
+    expect(styles).toMatch(
+      /\.app-shell\[data-theme="light"\] \.workspace-page \.ghost-button\.danger-button\s*\{[^}]*color:\s*#b4232f[^}]*background:\s*#fff0f1/,
+    )
+    expect(styles).toMatch(
+      /\.app-shell\[data-theme="light"\] \.danger-card\s*\{[^}]*color:\s*#b4232f[^}]*background:\s*#fff5f5/,
+    )
+    expect(styles).toMatch(
+      /\.app-shell\[data-theme="light"\] \.danger-card p\s*\{[^}]*color:\s*#8f2e37/,
+    )
+    expect(styles).toMatch(
+      /\.app-shell\[data-theme="light"\] \.status-waiting_for_review\s*\{[^}]*color:\s*#956300[^}]*background:\s*#fff5d6/,
+    )
+    expect(styles).toMatch(
+      /\.app-shell\[data-theme="light"\] \.status-planning\s*\{[^}]*color:\s*#416a86[^}]*background:\s*#e7f1f7/,
+    )
+    expect(styles).toMatch(
+      /\.app-shell\[data-theme="light"\] \.status-researching\s*\{[^}]*color:\s*#176a99[^}]*background:\s*#e6f4fb/,
+    )
+    expect(styles).toMatch(
+      /\.app-shell\[data-theme="light"\] \.status-writing\s*\{[^}]*color:\s*#087c73[^}]*background:\s*#e2f8f4/,
+    )
+    expect(styles).toMatch(
+      /\.app-shell\[data-theme="light"\] \.status-verifying\s*\{[^}]*color:\s*#12667c[^}]*background:\s*#e3f4f7/,
+    )
+  })
+
+  it('研究模式与指定操作按钮使用常规字重，不影响其他强调文字', () => {
+    expect(styles).toMatch(/\.mode-card strong\s*\{[^}]*font-weight:\s*500/)
+    expect(styles).toMatch(
+      /\.research-form > \.primary-button\s*\{[^}]*font-weight:\s*500/,
+    )
+    expect(styles).toMatch(
+      /\.workspace-page \.success-card \.compact-button\s*\{[^}]*font-weight:\s*500/,
+    )
+    expect(styles).toMatch(
+      /\.workspace-page \.review-card > \.primary-button\s*\{[^}]*font-weight:\s*500/,
+    )
+  })
+
   it('失败状态展示后端错误且不伪装为进行中', async () => {
     vi.stubGlobal(
       'fetch',
@@ -855,7 +939,7 @@ describe('ResearchFlow 路由', () => {
     expect(styles).toMatch(/\.workspace-page \.terminal-card h2,[\s\S]*?\.workspace-page \.terminal-card p\s*\{[^}]*overflow-wrap:\s*anywhere/)
   })
 
-  it('工作台取消与过期状态使用与首页一致的灰蓝和黄色徽标', async () => {
+  it('日间模式为取消与过期状态使用清晰的灰蓝和黄色徽标', async () => {
     vi.stubGlobal('fetch', createFetchRouter({ snapshots: { 'research-1': { ...waitingSnapshot, status: 'cancelled' } } }))
     const { unmount } = renderApp('/run/research-1')
 
@@ -866,9 +950,9 @@ describe('ResearchFlow 路由', () => {
     renderApp('/run/research-1')
 
     expect(await screen.findByText('研究已过期', { selector: '.status-badge' })).toHaveClass('status-expired')
-    expect(styles).toMatch(/\.workspace-page \.status-badge\.status-cancelled\s*\{[^}]*color:\s*#b1c0ca/)
-    expect(styles).toMatch(/\.workspace-page \.status-badge\.status-expired\s*\{[^}]*color:\s*#ffd166/)
-    expect(styles).toMatch(/\.recent-status\.status-expired\s*\{[^}]*color:\s*#ffd166/)
+    expect(styles).toMatch(/\.app-shell\[data-theme="light"\] \.workspace-page \.status-badge\.status-cancelled\s*\{[^}]*color:\s*#4f6575/)
+    expect(styles).toMatch(/\.app-shell\[data-theme="light"\] \.workspace-page \.status-badge\.status-expired\s*\{[^}]*color:\s*#8a5c00/)
+    expect(styles).toMatch(/\.app-shell\[data-theme="light"\] \.recent-status\.status-expired\s*\{[^}]*color:\s*#8a5c00/)
   })
 
   it('工作台顶部为每种研究状态显示对应图标', async () => {

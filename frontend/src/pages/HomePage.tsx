@@ -9,7 +9,7 @@ import {
   Sparkles,
   Trash2,
 } from 'lucide-react'
-import { FormEvent, useEffect, useState } from 'react'
+import { FormEvent, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
 import {
@@ -97,6 +97,9 @@ export function HomePage() {
   const [submitError, setSubmitError] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [recent, setRecent] = useState(readRecentResearch)
+  const [removalCandidate, setRemovalCandidate] = useState<(typeof recent)[number] | null>(null)
+  const removalTriggerRef = useRef<HTMLButtonElement | null>(null)
+  const removalDialogRef = useRef<HTMLElement | null>(null)
   const length = topic.trim().length
   const valid = length >= MIN_TOPIC && length <= MAX_TOPIC
 
@@ -109,6 +112,41 @@ export function HomePage() {
       active = false
     }
   }, [])
+
+  useEffect(() => {
+    if (!removalCandidate) return
+    const cancelButton = removalDialogRef.current?.querySelector<HTMLButtonElement>('[data-dialog-cancel]')
+    cancelButton?.focus()
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setRemovalCandidate(null)
+        return
+      }
+      if (event.key !== 'Tab') return
+
+      const buttons = Array.from(
+        removalDialogRef.current?.querySelectorAll<HTMLButtonElement>('button:not(:disabled)') ?? [],
+      )
+      if (buttons.length === 0) return
+      const first = buttons[0]
+      const last = buttons[buttons.length - 1]
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault()
+        last.focus()
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault()
+        first.focus()
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [removalCandidate])
+
+  useEffect(() => {
+    if (!removalCandidate) removalTriggerRef.current?.focus()
+  }, [removalCandidate])
 
   useEffect(() => {
     const legacyItems = recent.filter((item) => !item.mode)
@@ -144,10 +182,11 @@ export function HomePage() {
     }
   }
 
-  function removeRecent(item: typeof recent[number]) {
-    if (!window.confirm('您确定要移除此记录吗？')) return
-    removeRecentResearch(item.id)
-    setRecent((current) => current.filter((entry) => entry.id !== item.id))
+  function confirmRemoveRecent() {
+    if (!removalCandidate) return
+    removeRecentResearch(removalCandidate.id)
+    setRecent((current) => current.filter((entry) => entry.id !== removalCandidate.id))
+    setRemovalCandidate(null)
   }
 
   return (
@@ -274,8 +313,11 @@ export function HomePage() {
                 <button
                   className="recent-delete-button"
                   type="button"
-                  aria-label={`删除最近研究：${item.topic}`}
-                  onClick={() => removeRecent(item)}
+                  aria-label={`从最近研究移除：${item.topic}`}
+                  onClick={(event) => {
+                    removalTriggerRef.current = event.currentTarget
+                    setRemovalCandidate(item)
+                  }}
                 >
                   <Trash2 size={17} />
                 </button>
@@ -283,6 +325,39 @@ export function HomePage() {
             ))}
           </div>
         </section>
+      )}
+      {removalCandidate && (
+        <div
+          className="confirm-overlay"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setRemovalCandidate(null)
+          }}
+        >
+          <section
+            className="confirm-dialog"
+            ref={removalDialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="remove-research-title"
+            aria-describedby="remove-research-description"
+          >
+            <div className="confirm-dialog-icon"><Trash2 size={22} /></div>
+            <div>
+              <h2 id="remove-research-title">移除最近研究</h2>
+              <p id="remove-research-description">
+                仅从当前浏览器的最近研究列表隐藏，不会删除报告。
+              </p>
+            </div>
+            <div className="confirm-dialog-actions">
+              <button type="button" className="ghost-button" data-dialog-cancel onClick={() => setRemovalCandidate(null)}>
+                取消
+              </button>
+              <button type="button" className="danger-button" onClick={confirmRemoveRecent}>
+                确认移除
+              </button>
+            </div>
+          </section>
+        </div>
       )}
     </>
   )

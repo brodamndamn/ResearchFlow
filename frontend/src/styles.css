@@ -62,6 +62,11 @@ a {
 .app-shell[data-theme="light"] .site-header {
   background: rgba(247, 252, 253, 0.8);
 }
+.app-shell[data-theme="light"] .brand-mark {
+  color: #0b4a56;
+  background: #82e5d6;
+  box-shadow: 0 0 28px rgba(8, 143, 130, 0.18);
+}
 .app-shell[data-theme="light"] .panel,
 .app-shell[data-theme="light"] .showcase-card,
 .app-shell[data-theme="light"] .recent-card,
@@ -77,6 +82,11 @@ a {
 }
 .app-shell[data-theme="light"] .ghost-button {
   color: #183044;
+}
+.app-shell[data-theme="light"] .primary-button {
+  color: #12324a;
+  background: #b8f0e8;
+  box-shadow: 0 10px 26px rgba(8, 143, 130, 0.14);
 }
 .app-shell[data-theme="light"] .danger-button {
   color: #b4232f;
@@ -112,6 +122,173 @@ a {
 .app-shell[data-theme="light"] .scope-item p,
 .app-shell[data-theme="light"] .scope-item span {
   color: #35566c;
+}
+.app-shell[data-theme="light"] .eyebrow {
+  color: #087c73;
+  border-color: #72d5cb;
+  background: #e0faf6;
+}
+.app-shell[data-theme="light"] .recent-mode-pill.mode-quick {
+  color: #2b7792;
+  border-color: #9ed8e5;
+  background: #e8f8fc;
+}
+.app-shell[data-theme="light"] .recent-mode-pill.mode-deep {
+  color: #08776e;
+  border-color: #6bcfc2;
+  background: #dff8f3;
+}
+.app-shell[data-theme="light"] .status-failed,
+.app-shell[data-theme="light"] .recent-status.status-failed {
+  color: #b4232f;
+  border-color: #f0a6ad;
+  background: #fff0f1;
+}
+.app-shell[data-theme="light"] .status-cancelled,
+.app-shell[data-theme="light"] .recent-status.status-cancelled {
+  color: #4f6575;
+  border-color: #b9cad4;
+  background: #e5eef2;
+}
+.app-shell[data-theme="light"] .workspace-page .status-badge.status-cancelled {
+  color: #4f6575;
+  border-color: #b9cad4;
+  background: #e5eef2;
+}
+.app-shell[data-theme="light"] .status-expired,
+.app-shell[data-theme="light"] .recent-status.status-expired {
+  color: #8a5c00;
+  border-color: #e6c269;
+  background: #fff7dc;
+}
+.app-shell[data-theme="light"] .workspace-page .status-badge.status-expired {
+  color: #8a5c00;
+  border-color: #e6c269;
+  background: #fff7dc;
+}
+.app-shell[data-theme="light"] .status-queued {
+  color: #416a86;
+  border-color: #aec7d8;
+  background: #e7f1f7;
+}
+
+.app-shell[data-theme="light"] .status-planning {
+  color: #416a86;
+  border-color: #aec7d8;
+  background: #e7f1f7;
+}
+
+.app-shell[data-theme="light"] .status-waiting_for_review {
+  color: #956300;
+  border-color: #e5bd57;
+  background: #fff5d6;
+}
+
+.app-shell[data-theme="light"] .status-researching {
+  color: #176a99;
+  border-color: #91cde5;
+  background: #e6f4fb;
+}
+
+.app-shell[data-theme="light"] .status-writing {
+  color: #087c73;
+  border-color: #75d2c8;
+  background: #e2f8f4;
+}
+
+.app-shell[data-theme="light"] .status-verifying {
+  color: #12667c;
+  border-color: #82c9d4;
+  background: #e3f4f7;
+}
+
+.app-shell[data-theme="light"] .recent-status.status-queued,
+.app-shell[data-theme="light"] .recent-status.status-planning {
+  color: #416a86;
+  border-color: #aec7d8;
+  background: #e7f1f7;
+}
+
+.app-shell[data-theme="light"] .recent-status.status-waiting_for_review {
+  color: #956300;
+  border-color: #e5bd57;
+  background: #fff5d6;
+}
+
+.app-shell[data-theme="light"] .recent-status.status-researching {
+  color: #176a99;
+  border-color: #91cde5;
+  background: #e6f4fb;
+}
+
+.app-shell[data-theme="light"] .recent-status.status-writing {
+  color: #087c73;
+  border-color: #75d2c8;
+  background: #e2f8f4;
+}
+
+.app-shell[data-theme="light"] .recent-status.status-verifying {
+  color: #12667c;
+  border-color: #82c9d4;
+  background: #e3f4f7;
+}
+
+.app-shell[data-theme="light"] .workspace-page .ghost-button.danger-button {
+  color: #b4232f;
+  border-color: #f0a6ad;
+  background: #fff0f1;
+}
+
+.app-shell[data-theme="light"] .workspace-page .ghost-button.danger-button:hover {
+  border-color: #df7b85;
+  background: #ffe1e4;
+}
+
+.app-shell[data-theme="light"] .danger-card {
+  color: #b4232f;
+  border-color: #f0a6ad;
+  background: #fff5f5;
+}
+
+.app-shell[data-theme="light"] .danger-card h2 {
+  color: #b4232f;
+}
+
+.app-shell[data-theme="light"] .danger-card p {
+  color: #8f2e37;
+}
+
+.app-shell[data-theme="light"] .workspace-page .status-badge.status-completed {
+  color: #08776e;
+  border-color: #68cfc2;
+  background: #e4faf6;
+}
+.app-shell[data-theme="light"] .locked-plan-card {
+  filter: none;
+}
+.app-shell[data-theme="light"] .locked-plan-badge {
+  color: #4f6575;
+  border-color: #c3d0d8;
+  background: #edf3f6;
+}
+.app-shell[data-theme="light"] .locked-plan-card textarea:disabled,
+.app-shell[data-theme="light"] .locked-plan-card input:disabled {
+  color: #496273;
+  border-color: #c3d0d8;
+  background: #edf3f6;
+}
+.app-shell[data-theme="light"] .locked-plan-card .subquery-row > svg {
+  color: #6f8492;
+}
+.app-shell[data-theme="light"] .locked-plan-card .primary-button:disabled {
+  color: #536b7a;
+  border-color: #c0cdd5;
+  background: #d7e1e7;
+}
+.app-shell[data-theme="light"] .timeline-dot {
+  color: #0b4a56;
+  border: 1px solid #70d2c9;
+  background: #b8eee8;
 }
 .app-shell[data-theme="light"] .confirm-dialog {
   color: #183044;
@@ -386,6 +563,7 @@ input:focus {
 }
 .mode-card strong {
   font-size: 18px;
+  font-weight: 500;
 }
 .mode-card small {
   font-size: 14px;
@@ -414,6 +592,7 @@ input:focus {
   width: 100%;
   min-height: 52px;
   font-size: 18px;
+  font-weight: 500;
 }
 .research-scope {
   display: grid;
@@ -665,6 +844,69 @@ input:focus {
   border-color: rgba(255, 111, 111, 0.55);
   color: #ffaaaa;
   background: rgba(255, 111, 111, 0.1);
+}
+.confirm-overlay {
+  position: fixed;
+  z-index: 50;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(2, 10, 20, 0.72);
+  backdrop-filter: blur(8px);
+}
+.confirm-dialog {
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr);
+  gap: 16px;
+  width: min(100%, 460px);
+  padding: 26px;
+  border: 1px solid rgba(255, 111, 111, 0.3);
+  border-radius: 18px;
+  color: #e8f2f7;
+  background: linear-gradient(145deg, rgba(23, 42, 61, 0.98), rgba(9, 24, 40, 0.98));
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.42);
+}
+.confirm-dialog-icon {
+  display: grid;
+  width: 46px;
+  height: 46px;
+  place-items: center;
+  border: 1px solid rgba(255, 111, 111, 0.35);
+  border-radius: 13px;
+  color: #ffaaaa;
+  background: rgba(255, 111, 111, 0.11);
+}
+.confirm-dialog h2 {
+  margin: 1px 0 8px;
+  font-size: 21px;
+}
+.confirm-dialog p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.65;
+}
+.confirm-dialog-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 8px;
+}
+.confirm-dialog-actions button {
+  min-height: 42px;
+  padding: 0 16px;
+  font-size: 15px;
+}
+.confirm-dialog-actions .danger-button {
+  border-radius: 12px;
+  color: #fff;
+  font-weight: 700;
+  background: #b84d55;
+}
+.confirm-dialog-actions .danger-button:hover {
+  background: #d85c65;
 }
 .recent-copy {
   display: flex;
@@ -1086,6 +1328,7 @@ input:focus {
 .workspace-page .review-card > .primary-button {
   min-height: 52px;
   font-size: 18px;
+  font-weight: 500;
 }
 .locked-plan-card {
   filter: grayscale(0.45);
@@ -1152,6 +1395,9 @@ input:focus {
 .workspace-page .terminal-card .compact-button {
   min-height: 52px;
   font-size: 18px;
+}
+.workspace-page .success-card .compact-button {
+  font-weight: 500;
 }
 .status-failed,
 .status-cancelled {
