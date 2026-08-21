@@ -229,6 +229,9 @@ describe('ResearchFlow 路由', () => {
     expect(styles).toMatch(/\.header-note\s*\{[^}]*font-size:\s*16px/)
     expect(styles).toMatch(/\.header-nav-button\s*\{[^}]*min-height:\s*46px[^}]*padding:\s*0 16px[^}]*font-size:\s*16px/)
     expect(styles).toMatch(/\.header-nav-button svg\s*\{[^}]*width:\s*20px[^}]*height:\s*20px/)
+    expect(styles).toMatch(/\.app-shell\[data-theme="light"\]\s*\{[\s\S]*?--navy:\s*#eef5f8/)
+    expect(styles).toMatch(/\.app-shell\[data-theme="light"\]\s*\{[\s\S]*?--panel:\s*rgba\(255, 255, 255, 0\.88\)/)
+    expect(styles).toMatch(/\.theme-toggle\s*\{[^}]*min-width:\s*46px/)
 
     const tabletStart = styles.indexOf('@media (max-width: 800px)')
     const phoneStart = styles.indexOf('@media (max-width: 520px)')
@@ -239,6 +242,18 @@ describe('ResearchFlow 路由', () => {
 
     const phoneStyles = styles.slice(phoneStart)
     expect(phoneStyles).toMatch(/\.site-header\s*\{[^}]*height:\s*70px/)
+    expect(phoneStyles).toMatch(/\.theme-toggle\s*\{[^}]*width:\s*36px/)
+    expect(phoneStyles).toMatch(/\.theme-toggle\s*\{[^}]*min-width:\s*36px/)
+    expect(styles).toMatch(/\.app-shell\[data-theme="light"\]\s+\.mode-card span\s*,\s*\.app-shell\[data-theme="light"\]\s+\.scope-item strong\s*\{[^}]*color:\s*#183044/)
+    expect(styles).toMatch(/\.app-shell\[data-theme="light"\]\s+\.ghost-button\s*\{[^}]*color:\s*#183044/)
+    expect(styles).toMatch(/\.app-shell\[data-theme="light"\]\s+\.danger-button\s*\{[^}]*color:\s*#b4232f/)
+    expect(styles).toMatch(/\.app-shell\[data-theme="light"\]\s+\.scope-item\s*\{[^}]*background:\s*#f7fcfd/)
+    expect(styles).toMatch(/\.app-shell\[data-theme="light"\]\s+\.scope-item p\s*,\s*\.app-shell\[data-theme="light"\]\s+\.scope-item span\s*\{[^}]*color:\s*#35566c/)
+    expect(styles).toMatch(/\.app-shell\[data-theme="light"\]\s+\.confirm-dialog\s*\{[^}]*border-color:\s*rgba\(180, 35, 47, 0\.28\)[^}]*background:\s*#fff8f8/)
+    expect(styles).toMatch(/\.app-shell\[data-theme="light"\]\s+\.confirm-dialog h2\s*\{[^}]*color:\s*#183044/)
+    expect(styles).toMatch(/\.app-shell\[data-theme="light"\]\s+\.confirm-dialog p\s*\{[^}]*color:\s*#35566c/)
+    expect(styles).toMatch(/\.app-shell\[data-theme="light"\]\s+\.confirm-dialog-actions \.danger-button\s*\{[^}]*color:\s*#ffffff[^}]*background:\s*#b4232f/)
+    expect(styles).toMatch(/\.app-shell\[data-theme="light"\]\s+\.confirm-dialog-actions \.danger-button:hover\s*\{[^}]*background:\s*#8f1b24/)
   })
 
   it('研究流程在桌面和手机端都保持清晰可读', () => {
@@ -751,6 +766,70 @@ describe('ResearchFlow 路由', () => {
     expect(phoneStyles).toMatch(/\.workspace-page\s*\{[^}]*padding-top:\s*24px/)
     expect(tabletStyles).not.toMatch(/\.workspace-page \.status-badge\s*\{[^}]*font-size:\s*(?:1[0-5]|[0-9])px/)
     expect(tabletStyles).toMatch(/\.workspace-page \.timeline-panel\s*\{[^}]*padding:\s*24px/)
+  })
+
+  it('默认使用夜间模式，并可切换和保存日间模式', async () => {
+    const user = userEvent.setup()
+    renderApp('/run/research-1')
+
+    expect(document.querySelector('.app-shell')).toHaveAttribute('data-theme', 'dark')
+    const button = screen.getByRole('button', { name: '切换到日间模式' })
+    expect(button).toHaveAttribute('aria-pressed', 'false')
+
+    await user.click(button)
+
+    expect(document.querySelector('.app-shell')).toHaveAttribute('data-theme', 'light')
+    expect(localStorage.getItem('researchflow:theme')).toBe('light')
+    expect(screen.getByRole('button', { name: '切换到夜间模式' })).toHaveAttribute('aria-pressed', 'true')
+  })
+
+  it('从本地存储恢复日间模式，并忽略非法主题值', () => {
+    localStorage.setItem('researchflow:theme', 'light')
+    const { unmount } = renderApp('/')
+    expect(document.querySelector('.app-shell')).toHaveAttribute('data-theme', 'light')
+    unmount()
+
+    localStorage.setItem('researchflow:theme', 'neon')
+    renderApp('/')
+    expect(document.querySelector('.app-shell')).toHaveAttribute('data-theme', 'dark')
+  })
+
+  it('主题读取异常时回退夜间模式，写入异常时仍在当前会话切换', async () => {
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation((key) => {
+      if (key === 'researchflow:theme') throw new Error('存储读取失败')
+      return null
+    })
+    const firstView = renderApp('/')
+    expect(document.querySelector('.app-shell')).toHaveAttribute('data-theme', 'dark')
+    firstView.unmount()
+    vi.restoreAllMocks()
+
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation((key) => {
+      if (key === 'researchflow:theme') throw new Error('存储写入失败')
+    })
+    const user = userEvent.setup()
+    renderApp('/')
+
+    await user.click(screen.getByRole('button', { name: '切换到日间模式' }))
+
+    expect(document.querySelector('.app-shell')).toHaveAttribute('data-theme', 'light')
+  })
+
+  it('主题按钮是导航操作首项，并同步提供标题与太阳月亮图标', async () => {
+    const user = userEvent.setup()
+    renderApp('/')
+
+    const actions = screen.getByRole('navigation', { name: '页面导航' })
+    const toggle = screen.getByRole('button', { name: '切换到日间模式' })
+    expect(within(actions).getAllByRole('button')[0]).toBe(toggle)
+    expect(toggle).toHaveAttribute('title', '切换到日间模式')
+    expect(toggle.querySelector('svg.lucide-sun')).not.toBeNull()
+
+    await user.click(toggle)
+
+    const nightToggle = screen.getByRole('button', { name: '切换到夜间模式' })
+    expect(nightToggle).toHaveAttribute('title', '切换到夜间模式')
+    expect(nightToggle.querySelector('svg.lucide-moon')).not.toBeNull()
   })
 
   it('失败状态展示后端错误且不伪装为进行中', async () => {
