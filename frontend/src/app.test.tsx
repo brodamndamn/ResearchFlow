@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AppRoutes } from './app'
 import type { ResearchSnapshot, Showcase } from './lib/types'
 import styles from './styles.css?raw'
+import indexHtml from '../index.html?raw'
 
 const showcases: Showcase[] = [
   {
@@ -90,6 +91,10 @@ const completedSnapshot: ResearchSnapshot = {
 }
 
 describe('ResearchFlow 路由', () => {
+  it('浏览器标签页使用绿色烧杯品牌图标', () => {
+    expect(indexHtml).toMatch(/<link rel="icon" type="image\/svg\+xml" href="\/favicon\.svg"\s*\/>/)
+  })
+
   beforeEach(() => {
     localStorage.clear()
     vi.stubGlobal('EventSource', SilentEventSource)
@@ -118,6 +123,69 @@ describe('ResearchFlow 路由', () => {
     expect(screen.getByText('最多输入 300 个字')).toBeInTheDocument()
   })
 
+  it('首页在开始研究前说明适合范围与高风险主题边界', async () => {
+    vi.stubGlobal('fetch', createFetchRouter({ showcases }))
+    renderApp('/')
+
+    expect(await screen.findByText('适合研究')).toBeInTheDocument()
+    expect(screen.getByText('技术、行业、学习、公开信息')).toBeInTheDocument()
+    expect(screen.getByText('谨慎使用')).toBeInTheDocument()
+    expect(screen.getByText('医疗、法律、投资仅作资料整理')).toBeInTheDocument()
+  })
+
+  it('精选案例与最近研究的模式标签沿用对应的研究模式图标', async () => {
+    localStorage.setItem(
+      'researchflow:recent',
+      JSON.stringify([
+        {
+          id: 'recent-quick-mode',
+          topic: '用于验证快速研究图标的最近任务',
+          status: 'completed',
+          mode: 'quick',
+          updatedAt: '2026-08-20T08:01:00Z',
+        },
+        {
+          id: 'recent-deep-mode',
+          topic: '用于验证深度研究图标的最近任务',
+          status: 'completed',
+          mode: 'deep',
+          updatedAt: '2026-08-20T08:02:00Z',
+        },
+      ]),
+    )
+    vi.stubGlobal('fetch', createFetchRouter({ showcases }))
+    renderApp('/')
+
+    const showcaseDeep = (await screen.findByText('AI 搜索产品格局')).closest('a')
+    const showcaseQuick = screen.getByText('开源模型趋势').closest('a')
+    const recentQuick = screen.getByText('用于验证快速研究图标的最近任务').closest('a')
+    const recentDeep = screen.getByText('用于验证深度研究图标的最近任务').closest('a')
+
+    expect(showcaseDeep?.querySelector('[data-mode-icon="deep"] .lucide-search-check')).not.toBeNull()
+    expect(showcaseQuick?.querySelector('[data-mode-icon="quick"] .lucide-gauge')).not.toBeNull()
+    expect(recentQuick?.querySelector('[data-mode-icon="quick"] .lucide-gauge')).not.toBeNull()
+    expect(recentDeep?.querySelector('[data-mode-icon="deep"] .lucide-search-check')).not.toBeNull()
+  })
+
+  it('首屏承诺徽标与首页标签使用一致的视觉层级', () => {
+    vi.stubGlobal('fetch', createFetchRouter({ showcases }))
+    renderApp('/')
+
+    expect(screen.getByText('可观察、可审核、有引用')).toHaveClass('eyebrow')
+    expect(styles).toMatch(/\.hero \.eyebrow\s*\{[^}]*font-size:\s*16px/)
+    expect(styles).toMatch(/\.hero \.eyebrow\s*\{[^}]*gap:\s*8px/)
+    expect(styles).toMatch(/\.hero \.eyebrow\s*\{[^}]*padding:\s*8px 14px/)
+    expect(styles).toMatch(/\.hero \.eyebrow svg\s*\{[^}]*width:\s*18px[^}]*height:\s*18px/)
+    expect(styles).toMatch(/\.hero\s*\{[^}]*padding-top:\s*24px/)
+
+    const tabletStart = styles.indexOf('@media (max-width: 800px)')
+    const phoneStart = styles.indexOf('@media (max-width: 520px)')
+    const tabletStyles = styles.slice(tabletStart, phoneStart)
+    const phoneStyles = styles.slice(phoneStart)
+    expect(tabletStyles).toMatch(/\.hero\s*\{[^}]*padding-top:\s*24px/)
+    expect(phoneStyles).toMatch(/\.hero\s*\{[^}]*padding-top:\s*24px/)
+  })
+
   it('桌面研究表单与案例区等宽并使用更大的输入控件', () => {
     vi.stubGlobal('fetch', createFetchRouter({ showcases }))
     renderApp('/')
@@ -143,9 +211,110 @@ describe('ResearchFlow 路由', () => {
     const tabletStyles = styles.slice(tabletStart, phoneStart)
     expect(tabletStart).toBeGreaterThan(-1)
     expect(phoneStart).toBeGreaterThan(tabletStart)
-    expect(tabletStyles).toContain('.research-form { padding: 24px; }')
-    expect(tabletStyles).toContain('.research-form > textarea { min-height: 160px;')
-    expect(tabletStyles).toContain('.mode-card { min-height: 78px;')
+    expect(tabletStyles).toMatch(/\.research-form\s*\{[^}]*padding:\s*24px/)
+    expect(tabletStyles).toMatch(/\.research-form\s*>\s*textarea\s*\{[^}]*min-height:\s*160px/)
+    expect(tabletStyles).toMatch(/\.mode-card\s*\{[^}]*min-height:\s*78px/)
+  })
+
+  it('导航栏在桌面放大品牌与导航操作，并在窄屏保持紧凑', () => {
+    vi.stubGlobal('fetch', createFetchRouter({ showcases }))
+    renderApp('/')
+
+    expect(screen.getByRole('link', { name: 'ResearchFlow 首页' })).toHaveClass('brand')
+    expect(screen.getByRole('link', { name: '返回主页' })).toHaveClass('header-nav-button')
+    expect(styles).toMatch(/\.site-header\s*\{[^}]*height:\s*84px/)
+    expect(styles).toMatch(/\.brand\s*\{[^}]*font-size:\s*24px/)
+    expect(styles).toMatch(/\.brand-mark\s*\{[^}]*width:\s*42px[^}]*height:\s*42px/)
+    expect(styles).toMatch(/\.brand-mark svg\s*\{[^}]*width:\s*24px[^}]*height:\s*24px/)
+    expect(styles).toMatch(/\.header-note\s*\{[^}]*font-size:\s*16px/)
+    expect(styles).toMatch(/\.header-nav-button\s*\{[^}]*min-height:\s*46px[^}]*padding:\s*0 16px[^}]*font-size:\s*16px/)
+    expect(styles).toMatch(/\.header-nav-button svg\s*\{[^}]*width:\s*20px[^}]*height:\s*20px/)
+
+    const tabletStart = styles.indexOf('@media (max-width: 800px)')
+    const phoneStart = styles.indexOf('@media (max-width: 520px)')
+    const tabletStyles = styles.slice(tabletStart, phoneStart)
+    expect(tabletStyles).toMatch(/\.site-header\s*\{[^}]*height:\s*76px/)
+    expect(tabletStyles).toMatch(/\.brand\s*\{[^}]*font-size:\s*21px/)
+    expect(tabletStyles).toMatch(/\.header-nav-button\s*\{[^}]*min-height:\s*42px[^}]*font-size:\s*14px/)
+
+    const phoneStyles = styles.slice(phoneStart)
+    expect(phoneStyles).toMatch(/\.site-header\s*\{[^}]*height:\s*70px/)
+  })
+
+  it('研究流程在桌面和手机端都保持清晰可读', () => {
+    vi.stubGlobal('fetch', createFetchRouter({ showcases }))
+    renderApp('/')
+
+    expect(screen.getByLabelText('研究流程')).toHaveClass('process-strip')
+    expect(styles).toMatch(/\.process-strip\s*\{[^}]*gap:\s*20px[^}]*font-size:\s*17px/)
+    expect(styles).toMatch(/\.process-strip span\s*\{[^}]*gap:\s*8px/)
+    expect(styles).toMatch(/\.process-strip span svg\s*\{[^}]*width:\s*21px[^}]*height:\s*21px/)
+
+    const phoneStart = styles.indexOf('@media (max-width: 520px)')
+    const phoneStyles = styles.slice(phoneStart)
+    expect(phoneStyles).toMatch(/\.process-strip\s*\{[^}]*gap:\s*10px[^}]*font-size:\s*14px/)
+    expect(phoneStyles).toMatch(/\.process-strip span svg\s*\{[^}]*width:\s*18px[^}]*height:\s*18px/)
+  })
+
+  it('研究范围提示使用更大的卡片与文字，同时保持原有图标尺寸', () => {
+    vi.stubGlobal('fetch', createFetchRouter({ showcases }))
+    renderApp('/')
+
+    const scope = screen.getByLabelText('研究范围提示')
+    expect(scope.querySelector('.scope-suitable')).toHaveTextContent('适合研究')
+    expect(scope.querySelector('.scope-caution')).toHaveTextContent('谨慎使用')
+    expect(styles).toMatch(/\.scope-item\s*\{[^}]*min-height:\s*92px[^}]*padding:\s*18px 20px/)
+    expect(styles).toMatch(/\.scope-item strong\s*\{[^}]*font-size:\s*18px/)
+    expect(styles).toMatch(/\.scope-item span\s*\{[^}]*font-size:\s*15px/)
+    expect(styles).toMatch(/\.scope-item > svg\s*\{[^}]*width:\s*20px[^}]*height:\s*20px/)
+  })
+
+  it('精选案例和最近研究使用与首屏匹配的大尺寸层级', async () => {
+    localStorage.setItem(
+      'researchflow:recent',
+      JSON.stringify([
+        {
+          id: 'recent-large-layout',
+          topic: '用于验证最近研究卡片尺寸的主题',
+          status: 'completed',
+          mode: 'deep',
+          updatedAt: '2026-08-20T08:01:00Z',
+        },
+      ]),
+    )
+    vi.stubGlobal('fetch', createFetchRouter({ showcases }))
+    renderApp('/')
+
+    const showcaseCard = (await screen.findByText('AI 搜索产品格局')).closest('a')
+    const recentCard = screen.getByText('用于验证最近研究卡片尺寸的主题').closest('a')
+    expect(showcaseCard).toHaveClass('showcase-card')
+    expect(showcaseCard?.closest('.home-section')).not.toBeNull()
+    expect(recentCard?.closest('.recent-section.home-section')).not.toBeNull()
+    expect(styles).toMatch(/\.section-heading h2\s*\{[^}]*font-size:\s*28px/)
+    expect(styles).toMatch(/\.home-section \.section-heading h2\s*\{[^}]*font-size:\s*36px/)
+    expect(styles).toMatch(/\.home-section \.section-heading p\s*\{[^}]*font-size:\s*18px/)
+    expect(styles).toMatch(/\.showcase-card\s*\{[^}]*min-height:\s*320px[^}]*padding:\s*32px/)
+    expect(styles).toMatch(/\.showcase-card h3\s*\{[^}]*font-size:\s*24px/)
+    expect(styles).toMatch(/\.showcase-card p\s*\{[^}]*font-size:\s*18px/)
+    expect(styles).toMatch(/\.recent-card\s*\{[^}]*min-height:\s*96px[^}]*padding:\s*20px 22px/)
+    expect(styles).toMatch(/\.recent-copy strong\s*\{[^}]*font-size:\s*18px/)
+    expect(styles).toMatch(/\.home-section \.kicker\s*\{[^}]*font-size:\s*16px/)
+    expect(styles).toMatch(/\.showcase-card \.mode-pill\s*\{[^}]*padding:\s*6px 12px[^}]*font-size:\s*14px/)
+    expect(styles).toMatch(/\.recent-section \.recent-mode-pill\s*\{[^}]*padding:\s*6px 12px[^}]*font-size:\s*14px/)
+    expect(styles).toMatch(/\.home-section\s*\{[^}]*padding-top:\s*64px/)
+
+    const tabletStart = styles.indexOf('@media (max-width: 800px)')
+    const phoneStart = styles.indexOf('@media (max-width: 520px)')
+    const tabletStyles = styles.slice(tabletStart, phoneStart)
+    expect(tabletStyles).toMatch(/\.home-section\s*\{[^}]*padding-top:\s*48px/)
+    expect(tabletStyles).toMatch(/\.showcase-card\s*\{[^}]*min-height:\s*280px[^}]*padding:\s*24px/)
+    expect(tabletStyles).toMatch(/\.recent-card\s*\{[^}]*min-height:\s*84px[^}]*padding:\s*18px/)
+
+    const phoneStyles = styles.slice(phoneStart)
+    expect(phoneStyles).toMatch(/\.home-section \.section-heading h2\s*\{[^}]*font-size:\s*28px/)
+    expect(phoneStyles).toMatch(/\.showcase-card\s*\{[^}]*min-height:\s*260px[^}]*padding:\s*22px/)
+    expect(phoneStyles).toMatch(/\.recent-card\s*\{[^}]*gap:\s*12px[^}]*padding:\s*16px/)
+    expect(phoneStyles).toMatch(/\.recent-section \.recent-mode-pill\s*\{[^}]*font-size:\s*14px/)
   })
 
   it('创建深度研究后保存最近记录并进入工作台', async () => {
@@ -215,6 +384,97 @@ describe('ResearchFlow 路由', () => {
         ]),
       )
     })
+  })
+
+  it('删除已完成的最近研究时只移除当前浏览器的本地记录', async () => {
+    localStorage.setItem(
+      'researchflow:recent',
+      JSON.stringify([
+        {
+          id: 'recent-delete',
+          topic: '需要删除的已完成报告',
+          mode: 'quick',
+          status: 'completed',
+          updatedAt: '2026-08-20T08:01:00Z',
+        },
+        {
+          id: 'recent-keep',
+          topic: '需要保留的本地研究记录',
+          mode: 'deep',
+          status: 'completed',
+          updatedAt: '2026-08-20T08:02:00Z',
+        },
+      ]),
+    )
+    const fetcher = createFetchRouter({ showcases })
+    vi.stubGlobal('fetch', fetcher)
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+    const user = userEvent.setup()
+    renderApp('/')
+
+    await user.click(screen.getByRole('button', { name: '删除最近研究：需要删除的已完成报告' }))
+
+    expect(window.confirm).toHaveBeenCalledWith('您确定要移除此记录吗？')
+    expect(fetcher.mock.calls.some(([, init]) => init?.method === 'DELETE')).toBe(false)
+    expect(screen.queryByText('需要删除的已完成报告')).not.toBeInTheDocument()
+    expect(screen.getByText('需要保留的本地研究记录')).toBeInTheDocument()
+    expect(JSON.parse(localStorage.getItem('researchflow:recent') || '[]')).toEqual([
+      expect.objectContaining({ id: 'recent-keep' }),
+    ])
+  })
+
+  it('删除未完成的最近研究时只移除本地记录', async () => {
+    localStorage.setItem(
+      'researchflow:recent',
+      JSON.stringify([
+        {
+          id: 'recent-cancelled',
+          topic: '已经取消的本地研究记录',
+          mode: 'quick',
+          status: 'cancelled',
+          updatedAt: '2026-08-20T08:01:00Z',
+        },
+      ]),
+    )
+    const fetcher = createFetchRouter({ showcases })
+    vi.stubGlobal('fetch', fetcher)
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+    const user = userEvent.setup()
+    renderApp('/')
+
+    await user.click(screen.getByRole('button', { name: '删除最近研究：已经取消的本地研究记录' }))
+
+    expect(window.confirm).toHaveBeenCalledWith('您确定要移除此记录吗？')
+    expect(fetcher.mock.calls.some(([, init]) => init?.method === 'DELETE')).toBe(false)
+    expect(screen.queryByText('已经取消的本地研究记录')).not.toBeInTheDocument()
+    expect(localStorage.getItem('researchflow:recent')).toBe('[]')
+  })
+
+  it('最近研究为终态与进行中任务显示不同的状态徽标', async () => {
+    localStorage.setItem(
+      'researchflow:recent',
+      JSON.stringify([
+        { id: 'recent-completed', topic: '已完成的研究主题', mode: 'quick', status: 'completed', updatedAt: '2026-08-20T08:01:00Z' },
+        { id: 'recent-failed', topic: '失败的研究主题', mode: 'quick', status: 'failed', updatedAt: '2026-08-20T08:02:00Z' },
+        { id: 'recent-cancelled', topic: '已取消的研究主题', mode: 'deep', status: 'cancelled', updatedAt: '2026-08-20T08:03:00Z' },
+        { id: 'recent-expired', topic: '已过期的研究主题', mode: 'deep', status: 'expired', updatedAt: '2026-08-20T08:04:00Z' },
+        { id: 'recent-writing', topic: '正在撰写的研究主题', mode: 'quick', status: 'writing', updatedAt: '2026-08-20T08:05:00Z' },
+      ]),
+    )
+    vi.stubGlobal('fetch', createFetchRouter({ showcases }))
+    renderApp('/')
+
+    expect(screen.getByText('已完成')).toHaveClass('recent-status', 'status-completed')
+    expect(screen.getByText('失败')).toHaveClass('recent-status', 'status-failed')
+    expect(screen.getByText('已取消')).toHaveClass('recent-status', 'status-cancelled')
+    expect(screen.getByText('已过期')).toHaveClass('recent-status', 'status-expired')
+    expect(screen.getByText('正在撰写报告')).toHaveClass('recent-status', 'status-writing')
+    expect(styles).toMatch(/\.recent-status\s*\{[^}]*border-radius:\s*999px/)
+    expect(styles).toMatch(/\.recent-status\.status-completed\s*\{[^}]*color:\s*var\(--cyan\)/)
+    expect(styles).toMatch(/\.recent-status\.status-failed\s*\{[^}]*color:\s*#ffaaaa/)
+    expect(styles).toMatch(/\.recent-status\.status-cancelled\s*\{[^}]*color:\s*#b1c0ca/)
+    expect(styles).toMatch(/\.recent-status\.status-expired\s*\{[^}]*color:\s*#ffd166/)
+    expect(styles).toMatch(/\.recent-status\.status-writing,[\s\S]*?\{[^}]*color:\s*#b8a7ff/)
   })
 
   it('某条旧记录请求挂起时，其他模式仍能独立补全', async () => {
@@ -459,6 +719,40 @@ describe('ResearchFlow 路由', () => {
     })
   })
 
+  it('工作台使用与首页一致的较大标题、时间线和审核卡层级', async () => {
+    vi.stubGlobal('fetch', createFetchRouter({ snapshots: { 'research-1': waitingSnapshot } }))
+    renderApp('/run/research-1')
+
+    const title = await screen.findByRole('heading', { name: waitingSnapshot.topic })
+    expect(title.closest('.workspace-page')).not.toBeNull()
+    expect(screen.getByText('研究时间线').closest('.timeline-panel')).not.toBeNull()
+    expect(screen.getByText('审核研究计划').closest('.review-card')).not.toBeNull()
+    expect(styles).toMatch(/\.workspace-page\s*\{[^}]*padding-top:\s*24px/)
+    expect(styles).toMatch(/\.workspace-header h1\s*\{[^}]*font-size:\s*42px/)
+    expect(styles).toMatch(/\.workspace-header p\s*\{[^}]*font-size:\s*16px/)
+    expect(styles).toMatch(/\.workspace-page \.status-badge\s*\{[^}]*padding:\s*8px 14px[^}]*font-size:\s*16px/)
+    expect(styles).toMatch(/\.workspace-page \.status-badge\.status-completed\s*\{[^}]*border-color:\s*rgba\(56, 217, 197, 0\.25\)[^}]*background:\s*rgba\(56, 217, 197, 0\.06\)/)
+    expect(styles).toMatch(/\.workspace-grid\s*\{[^}]*grid-template-columns:\s*390px minmax\(0, 1fr\)[^}]*gap:\s*24px/)
+    expect(styles).toMatch(/\.workspace-page \.timeline-panel\s*\{[^}]*padding:\s*30px/)
+    expect(styles).toMatch(/\.workspace-page \.timeline-panel h2\s*\{[^}]*font-size:\s*28px/)
+    expect(styles).toMatch(/\.workspace-page \.timeline-item\s*\{[^}]*min-height:\s*84px[^}]*grid-template-columns:\s*30px 1fr/)
+    expect(styles).toMatch(/\.workspace-page \.timeline-item strong\s*\{[^}]*font-size:\s*18px/)
+    expect(styles).toMatch(/\.workspace-page \.timeline-item time\s*\{[^}]*font-size:\s*14px/)
+    expect(styles).toMatch(/\.workspace-page \.review-card\s*\{[^}]*padding:\s*32px/)
+    expect(styles).toMatch(/\.workspace-page \.review-card h2\s*\{[^}]*font-size:\s*28px/)
+    expect(styles).toMatch(/\.workspace-page \.review-card > p\s*\{[^}]*font-size:\s*16px/)
+    expect(styles).toMatch(/\.workspace-page \.terminal-card\s*\{[^}]*padding:\s*28px/)
+
+    const tabletStart = styles.indexOf('@media (max-width: 800px)')
+    const phoneStart = styles.indexOf('@media (max-width: 520px)')
+    const tabletStyles = styles.slice(tabletStart, phoneStart)
+    const phoneStyles = styles.slice(phoneStart)
+    expect(tabletStyles).toMatch(/\.workspace-page\s*\{[^}]*padding-top:\s*24px/)
+    expect(phoneStyles).toMatch(/\.workspace-page\s*\{[^}]*padding-top:\s*24px/)
+    expect(tabletStyles).not.toMatch(/\.workspace-page \.status-badge\s*\{[^}]*font-size:\s*(?:1[0-5]|[0-9])px/)
+    expect(tabletStyles).toMatch(/\.workspace-page \.timeline-panel\s*\{[^}]*padding:\s*24px/)
+  })
+
   it('失败状态展示后端错误且不伪装为进行中', async () => {
     vi.stubGlobal(
       'fetch',
@@ -474,8 +768,75 @@ describe('ResearchFlow 路由', () => {
     )
     renderApp('/run/research-1')
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('搜索服务暂时不可用')
+    const error = await screen.findByRole('alert')
+    expect(error).toHaveTextContent('搜索服务暂时不可用')
+    expect(error.closest('.terminal-card-content')).not.toBeNull()
     expect(screen.getByRole('heading', { name: '研究失败' })).toBeInTheDocument()
+    expect(styles).toMatch(/\.workspace-page \.terminal-card-content\s*\{[^}]*min-width:\s*0/)
+    expect(styles).toMatch(/\.workspace-page \.terminal-card h2,[\s\S]*?\.workspace-page \.terminal-card p\s*\{[^}]*overflow-wrap:\s*anywhere/)
+  })
+
+  it('工作台取消与过期状态使用与首页一致的灰蓝和黄色徽标', async () => {
+    vi.stubGlobal('fetch', createFetchRouter({ snapshots: { 'research-1': { ...waitingSnapshot, status: 'cancelled' } } }))
+    const { unmount } = renderApp('/run/research-1')
+
+    expect(await screen.findByText('研究已取消', { selector: '.status-badge' })).toHaveClass('status-cancelled')
+    unmount()
+
+    vi.stubGlobal('fetch', createFetchRouter({ snapshots: { 'research-1': { ...waitingSnapshot, status: 'expired' } } }))
+    renderApp('/run/research-1')
+
+    expect(await screen.findByText('研究已过期', { selector: '.status-badge' })).toHaveClass('status-expired')
+    expect(styles).toMatch(/\.workspace-page \.status-badge\.status-cancelled\s*\{[^}]*color:\s*#b1c0ca/)
+    expect(styles).toMatch(/\.workspace-page \.status-badge\.status-expired\s*\{[^}]*color:\s*#ffd166/)
+    expect(styles).toMatch(/\.recent-status\.status-expired\s*\{[^}]*color:\s*#ffd166/)
+  })
+
+  it('工作台顶部为每种研究状态显示对应图标', async () => {
+    const cases = [
+      ['queued', 'ellipsis'],
+      ['planning', 'compass'],
+      ['waiting_for_review', 'circle'],
+      ['researching', 'search'],
+      ['writing', 'file'],
+      ['verifying', 'shield'],
+      ['completed', 'check'],
+      ['failed', 'alert'],
+      ['cancelled', 'x'],
+      ['expired', 'clock'],
+    ] as const
+
+    for (const [status, icon] of cases) {
+      vi.stubGlobal('fetch', createFetchRouter({ snapshots: { 'research-1': { ...waitingSnapshot, status } } }))
+      const view = renderApp('/run/research-1')
+      expect(await screen.findByTestId('workspace-status-icon')).toHaveAttribute('data-status-icon', icon)
+      view.unmount()
+    }
+  })
+
+  it('工作台时间线为后端长事件文本保留安全换行空间', async () => {
+    vi.stubGlobal('fetch', createFetchRouter({ snapshots: { 'research-1': waitingSnapshot } }))
+    renderApp('/run/research-1')
+
+    const timeline = await screen.findByText('研究时间线')
+    expect(timeline.closest('.timeline-panel')).not.toBeNull()
+    expect(styles).toMatch(/\.workspace-page \.timeline-item > div\s*\{[^}]*min-width:\s*0/)
+    expect(styles).toMatch(/\.workspace-page \.timeline-item strong\s*\{[^}]*overflow-wrap:\s*anywhere/)
+  })
+
+  it('已完成研究在时间线右侧展示不可编辑的已确认计划', async () => {
+    vi.stubGlobal('fetch', createFetchRouter({ snapshots: { 'research-1': completedSnapshot } }))
+    renderApp('/run/research-1')
+
+    expect(await screen.findByRole('heading', { name: '已确认的研究计划' })).toBeInTheDocument()
+    expect(screen.getByText('此计划已用于生成当前报告，不能再修改。')).toBeInTheDocument()
+    expect(screen.getByLabelText('已确认的研究重点')).toBeDisabled()
+    expect(screen.getByLabelText('已确认的子问题 1')).toHaveValue('准确率如何？')
+    expect(screen.getByLabelText('已确认的子问题 1')).toBeDisabled()
+    expect(screen.getByRole('button', { name: '计划已确认' })).toBeDisabled()
+    expect(screen.getByText('已锁定').closest('.locked-plan-card')).not.toBeNull()
+    expect(styles).toMatch(/\.locked-plan-card\s*\{[^}]*filter:\s*grayscale\(0\.45\)/)
+    expect(styles).toMatch(/\.locked-plan-card textarea:disabled,[\s\S]*?\.locked-plan-card input:disabled\s*\{[^}]*cursor:\s*not-allowed/)
   })
 
   it('报告渲染目录、来源与指标，但不执行 Markdown 原始 HTML', async () => {
@@ -508,7 +869,39 @@ describe('ResearchFlow 路由', () => {
       'href',
       'https://example.com/evaluation',
     )
+    expect(screen.getByRole('link', { name: '模型评测方法说明' }).querySelector('.source-title')).not.toBeNull()
     expect(screen.getByText('恶意来源').closest('a')).toBeNull()
+    expect(screen.getByText('恶意来源')).toHaveClass('source-title')
+    expect(screen.getByText('快速导航').closest('.report-toc')).not.toBeNull()
+    expect(styles).toMatch(/\.report-page\s*\{[^}]*padding-top:\s*0/)
+    expect(styles).toMatch(/\.report-header\s*\{[^}]*padding:\s*24px 0 40px/)
+    expect(styles).toMatch(/\.report-header \.eyebrow\s*\{[^}]*gap:\s*8px[^}]*padding:\s*8px 14px[^}]*font-size:\s*16px/)
+    expect(styles).toMatch(/\.report-header \.eyebrow svg\s*\{[^}]*width:\s*18px[^}]*height:\s*18px/)
+    expect(screen.getByText('[1]').closest('.source-card')).not.toBeNull()
+    expect(styles).toMatch(/\.report-toc\s*\{[^}]*padding:\s*28px/)
+    expect(styles).toMatch(/\.report-toc \.kicker\s*\{[^}]*font-size:\s*16px/)
+    expect(styles).toMatch(/\.report-toc a\s*\{[^}]*font-size:\s*18px[^}]*padding:\s*12px 0 12px 16px/)
+    expect(styles).toMatch(/\.source-list\s*\{[^}]*gap:\s*16px/)
+    expect(styles).toMatch(/\.source-card\s*\{[^}]*grid-template-columns:\s*52px minmax\(0, 1fr\)[^}]*gap:\s*16px[^}]*padding:\s*24px/)
+    expect(styles).toMatch(/\.source-number\s*\{[^}]*font-size:\s*24px/)
+    expect(styles).toMatch(/\.source-card a,\s*\.source-card strong\s*\{[^}]*font-size:\s*20px/)
+    expect(styles).toMatch(/\.source-card p\s*\{[^}]*font-size:\s*16px/)
+    expect(styles).toMatch(/\.source-card div > span\s*\{[^}]*font-size:\s*14px/)
+
+    const tabletStart = styles.indexOf('@media (max-width: 800px)')
+    const phoneStart = styles.indexOf('@media (max-width: 520px)')
+    const tabletStyles = styles.slice(tabletStart, phoneStart)
+    const phoneStyles = styles.slice(phoneStart)
+    expect(tabletStyles).toMatch(/\.report-page\s*\{[^}]*padding-top:\s*0/)
+    expect(phoneStyles).toMatch(/\.report-page\s*\{[^}]*padding-top:\s*0/)
+    expect(tabletStyles).toMatch(/\.report-toc\s*\{[^}]*padding:\s*24px/)
+    expect(tabletStyles).toMatch(/\.source-card\s*\{[^}]*grid-template-columns:\s*44px minmax\(0, 1fr\)[^}]*padding:\s*20px/)
+
+    expect(phoneStyles).toMatch(/\.report-toc nav\s*\{[^}]*grid-template-columns:\s*1fr/)
+    expect(styles).toMatch(/\.report-toc a\s*\{[^}]*overflow-wrap:\s*anywhere/)
+    expect(styles).toMatch(/\.source-card > div\s*\{[^}]*min-width:\s*0/)
+    expect(styles).toMatch(/\.source-card a\s*\{[^}]*display:\s*flex[^}]*min-width:\s*0/)
+    expect(styles).toMatch(/\.source-title\s*\{[^}]*overflow-wrap:\s*anywhere/)
 
     await user.click(screen.getByRole('button', { name: '复制报告链接' }))
     expect(writeText).toHaveBeenCalledWith(expect.stringContaining('/research/report/research-1'))

@@ -1,10 +1,26 @@
-import { ArrowRight, Clock3, Compass, Gauge, SearchCheck, Sparkles } from 'lucide-react'
+import {
+  ArrowRight,
+  CircleCheck,
+  Clock3,
+  Compass,
+  Gauge,
+  SearchCheck,
+  ShieldAlert,
+  Sparkles,
+  Trash2,
+} from 'lucide-react'
 import { FormEvent, useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
-import { ApiError, createResearch, getResearch, getShowcases } from '../lib/api'
+import {
+  ApiError,
+  createResearch,
+  getResearch,
+  getShowcases,
+} from '../lib/api'
 import {
   readRecentResearch,
+  removeRecentResearch,
   saveRecentResearch,
   updateRecentResearchMode,
 } from '../lib/recent'
@@ -128,6 +144,12 @@ export function HomePage() {
     }
   }
 
+  function removeRecent(item: typeof recent[number]) {
+    if (!window.confirm('您确定要移除此记录吗？')) return
+    removeRecentResearch(item.id)
+    setRecent((current) => current.filter((entry) => entry.id !== item.id))
+  }
+
   return (
     <>
       <section className="hero section-wrap">
@@ -189,6 +211,17 @@ export function HomePage() {
           </button>
         </form>
 
+        <aside className="research-scope" aria-label="研究范围提示">
+          <div className="scope-item scope-suitable">
+            <CircleCheck aria-hidden="true" />
+            <div><strong>适合研究</strong><span>技术、行业、学习、公开信息</span></div>
+          </div>
+          <div className="scope-item scope-caution">
+            <ShieldAlert aria-hidden="true" />
+            <div><strong>谨慎使用</strong><span>医疗、法律、投资仅作资料整理</span></div>
+          </div>
+        </aside>
+
         <div className="process-strip" aria-label="研究流程">
           <span><Compass size={17} /> 规划问题</span>
           <span>→</span>
@@ -198,7 +231,7 @@ export function HomePage() {
         </div>
       </section>
 
-      <section className="section-wrap section-block">
+      <section className="section-wrap section-block home-section">
         <div className="section-heading">
           <div><span className="kicker">精选案例</span><h2>看看 ResearchFlow 能研究什么</h2></div>
           <p>案例报告公开展示，便于你在创建研究前了解结果形式。</p>
@@ -208,7 +241,7 @@ export function HomePage() {
           {showcases.map((item, index) => (
             <Link className="showcase-card" data-testid="showcase-card" key={item.id} to={`/report/${item.runId}`}>
               <span className="case-index">0{index + 1}</span>
-              <span className="mode-pill">{item.mode === 'deep' ? '深度研究' : '快速研究'}</span>
+              <span className="mode-pill"><ModeIcon mode={item.mode} />{modeText(item.mode)}</span>
               <h3>{item.title}</h3>
               <p>{item.summary}</p>
               <span className="text-link">阅读报告 <ArrowRight size={15} /></span>
@@ -218,25 +251,35 @@ export function HomePage() {
       </section>
 
       {recent.length > 0 && (
-        <section className="section-wrap section-block recent-section">
+        <section className="section-wrap section-block recent-section home-section">
           <div className="section-heading">
             <div><span className="kicker">仅当前浏览器可见</span><h2>最近研究</h2></div>
           </div>
           <div className="recent-list">
             {recent.map((item) => (
-              <Link key={item.id} to={`/run/${item.id}`}>
+              <div className="recent-card" key={item.id}>
+                <Link to={`/run/${item.id}`}>
                 <Clock3 size={17} />
                 <span className="recent-copy">
                   <strong>{item.topic}</strong>
-                  <small>{statusText(item.status)}</small>
+                  <small className={`recent-status status-${item.status}`}>{statusText(item.status)}</small>
                 </span>
                 {item.mode ? (
                   <span className={`recent-mode-pill mode-${item.mode}`}>
-                    {item.mode === 'deep' ? '深度研究' : '快速研究'}
+                    <ModeIcon mode={item.mode} />{modeText(item.mode)}
                   </span>
                 ) : null}
                 <ArrowRight size={17} />
-              </Link>
+                </Link>
+                <button
+                  className="recent-delete-button"
+                  type="button"
+                  aria-label={`删除最近研究：${item.topic}`}
+                  onClick={() => removeRecent(item)}
+                >
+                  <Trash2 size={17} />
+                </button>
+              </div>
             ))}
           </div>
         </section>
@@ -245,11 +288,26 @@ export function HomePage() {
   )
 }
 
+function ModeIcon({ mode }: { mode: ResearchMode }) {
+  const Icon = mode === 'deep' ? SearchCheck : Gauge
+  return <span className="mode-icon" data-mode-icon={mode} aria-hidden="true"><Icon size={15} /></span>
+}
+
+function modeText(mode: ResearchMode) {
+  return mode === 'deep' ? '深度研究' : '快速研究'
+}
+
 function statusText(status: string) {
   return ({
+    queued: '正在排队',
+    planning: '正在制定计划',
     waiting_for_review: '等待审核',
+    researching: '正在搜索证据',
+    writing: '正在撰写报告',
+    verifying: '正在校验引用',
     completed: '已完成',
     failed: '失败',
     cancelled: '已取消',
+    expired: '已过期',
   } as Record<string, string>)[status] || '研究中'
 }

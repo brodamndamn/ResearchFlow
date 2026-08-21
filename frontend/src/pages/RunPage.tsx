@@ -1,4 +1,4 @@
-import { AlertTriangle, Check, Circle, FileText, LoaderCircle, Plus, X } from 'lucide-react'
+import { AlertTriangle, Check, Circle, Clock3, Compass, Ellipsis, FileText, LoaderCircle, Lock, Plus, Search, ShieldCheck, X } from 'lucide-react'
 import { FormEvent, useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 
@@ -90,7 +90,7 @@ export function RunPage() {
     <section className="section-wrap workspace-page">
       <div className="workspace-header">
         <div>
-          <span className={`status-badge status-${snapshot.status}`}>{labels[snapshot.status]}</span>
+          <span className={`status-badge status-${snapshot.status}`}><StatusIcon status={snapshot.status} />{labels[snapshot.status]}</span>
           <h1>{snapshot.topic}</h1>
           <p>{snapshot.mode === 'deep' ? '深度研究' : '快速研究'} · 任务 {snapshot.id}</p>
         </div>
@@ -100,18 +100,18 @@ export function RunPage() {
       {pageError && <p className="error-banner" role="alert">{pageError}</p>}
       {snapshot.status === 'failed' && (
         <div className="terminal-card danger-card">
-          <AlertTriangle size={25} /><div><h2>研究失败</h2><p role="alert">{snapshot.error || '研究执行失败，请稍后重试'}</p></div>
+          <AlertTriangle size={25} /><div className="terminal-card-content"><h2>研究失败</h2><p role="alert">{snapshot.error || '研究执行失败，请稍后重试'}</p></div>
         </div>
       )}
       {snapshot.status === 'cancelled' && (
-        <div className="terminal-card"><X size={25} /><div><h2>研究已取消</h2><p>任务已停止，不会继续消耗研究额度。</p></div></div>
+        <div className="terminal-card"><X size={25} /><div className="terminal-card-content"><h2>研究已取消</h2><p>任务已停止，不会继续消耗研究额度。</p></div></div>
       )}
       {snapshot.status === 'expired' && (
-        <div className="terminal-card"><X size={25} /><div><h2>研究已过期</h2><p>匿名研究报告仅保留 7 天，请返回首页创建新的研究。</p></div></div>
+        <div className="terminal-card"><X size={25} /><div className="terminal-card-content"><h2>研究已过期</h2><p>匿名研究报告仅保留 7 天，请返回首页创建新的研究。</p></div></div>
       )}
       {snapshot.status === 'completed' && (
         <div className="terminal-card success-card">
-          <FileText size={25} /><div><h2>中文研究报告已生成</h2><p>报告包含引用来源、研究指标和完整结论。</p></div>
+          <FileText size={25} /><div className="terminal-card-content"><h2>中文研究报告已生成</h2><p>报告包含引用来源、研究指标和完整结论。</p></div>
           <Link className="primary-button compact-button" to={`/report/${id}`}>查看报告</Link>
         </div>
       )}
@@ -127,11 +127,11 @@ export function RunPage() {
                 <span className="timeline-dot">
                   {event.status === 'completed' ? <Check size={13} /> : event.status === 'failed' ? <X size={13} /> : <LoaderCircle size={13} />}
                 </span>
-                <div><strong>{event.message}</strong><time>{formatTime(event.timestamp)}</time></div>
+                <div className="timeline-item-content"><strong>{event.message}</strong><time>{formatTime(event.timestamp)}</time></div>
               </div>
             ))}
             {!terminal && snapshot.status !== 'waiting_for_review' && (
-              <div className="timeline-item active"><span className="timeline-dot"><LoaderCircle size={13} /></span><div><strong>{labels[snapshot.status]}</strong><time>进度会自动更新</time></div></div>
+              <div className="timeline-item active"><span className="timeline-dot"><LoaderCircle size={13} /></span><div className="timeline-item-content"><strong>{labels[snapshot.status]}</strong><time>进度会自动更新</time></div></div>
             )}
           </div>
         </aside>
@@ -156,6 +156,24 @@ export function RunPage() {
               <button className="text-button" type="button" onClick={() => setSubqueries((items) => [...items, ''])}><Plus size={16} /> 添加子问题</button>
               <button className="primary-button" type="submit" disabled={saving || !focus.trim() || subqueries.every((item) => !item.trim())}>{saving ? '正在确认…' : '确认并继续'}</button>
             </form>
+          ) : snapshot.status === 'completed' ? (
+            <section className="locked-plan-card review-card panel" aria-label="已确认的研究计划">
+              <div className="review-title"><span className="review-icon"><Lock size={19} /></span><div><span className="kicker">研究轨迹</span><h2>已确认的研究计划</h2></div><span className="locked-plan-badge">已锁定</span></div>
+              <p>此计划已用于生成当前报告，不能再修改。</p>
+              <label htmlFor="locked-focus">研究重点</label>
+              <textarea id="locked-focus" aria-label="已确认的研究重点" rows={3} value={snapshot.focus} disabled readOnly />
+              <fieldset className="subquery-list">
+                <legend>子问题</legend>
+                {snapshot.subqueries.map((query, index) => (
+                  <div className="subquery-row" key={`${query}-${index}`}>
+                    <span>{index + 1}</span>
+                    <input aria-label={`已确认的子问题 ${index + 1}`} value={query} disabled readOnly />
+                    <Lock size={16} aria-hidden="true" />
+                  </div>
+                ))}
+              </fieldset>
+              <button className="primary-button" type="button" disabled>计划已确认</button>
+            </section>
           ) : !terminal ? (
             <div className="panel progress-card">
               <span className="pulse-ring"><LoaderCircle size={30} /></span>
@@ -175,4 +193,21 @@ function PageState({ text, danger = false }: { text: string; danger?: boolean })
 
 function formatTime(value: string) {
   return new Intl.DateTimeFormat('zh-CN', { hour: '2-digit', minute: '2-digit' }).format(new Date(value))
+}
+
+function StatusIcon({ status }: { status: ResearchStatus }) {
+  const details: Record<ResearchStatus, { name: string; Icon: typeof Check }> = {
+    queued: { name: 'ellipsis', Icon: Ellipsis },
+    planning: { name: 'compass', Icon: Compass },
+    waiting_for_review: { name: 'circle', Icon: Circle },
+    researching: { name: 'search', Icon: Search },
+    writing: { name: 'file', Icon: FileText },
+    verifying: { name: 'shield', Icon: ShieldCheck },
+    completed: { name: 'check', Icon: Check },
+    failed: { name: 'alert', Icon: AlertTriangle },
+    cancelled: { name: 'x', Icon: X },
+    expired: { name: 'clock', Icon: Clock3 },
+  }
+  const { Icon, name } = details[status]
+  return <span data-testid="workspace-status-icon" data-status-icon={name} aria-hidden="true"><Icon size={16} /></span>
 }

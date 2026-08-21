@@ -88,9 +88,9 @@ export function ReportPage() {
                   <span className="source-number">[{index + 1}]</span>
                   <div>
                     {safeExternalUrl(source.url) ? (
-                      <a href={source.url} target="_blank" rel="noreferrer">{source.title} <ExternalLink size={14} /></a>
+                      <a href={source.url} target="_blank" rel="noreferrer"><span className="source-title">{source.title}</span><ExternalLink size={14} /></a>
                     ) : (
-                      <strong>{source.title}</strong>
+                      <strong className="source-title">{source.title}</strong>
                     )}
                     <p>{source.snippet}</p><span><Link2 size={13} /> {source.domain}</span>
                   </div>

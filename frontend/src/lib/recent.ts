@@ -40,3 +40,8 @@ export function updateRecentResearchMode(id: string, mode: ResearchMode): void {
   )
   localStorage.setItem(STORAGE_KEY, JSON.stringify(updated))
 }
+
+export function removeRecentResearch(id: string): void {
+  const remaining = readRecentResearch().filter((item) => item.id !== id)
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(remaining))
+}
