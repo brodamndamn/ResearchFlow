@@ -5,7 +5,7 @@ from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.types import Command
 
 from app.agent.types import Evidence, ResearchMode, ResearchPlan, SearchDocument
-from app.agent.workflow import build_research_graph
+from app.agent.workflow import _deduplicate, _source_quality, build_research_graph
 
 pytestmark = pytest.mark.filterwarnings("error:Pydantic serializer warnings")
 
@@ -69,6 +69,67 @@ class FakeSearchProvider:
                 score=0.8,
             ),
         ][:max_results]
+
+
+def test_source_selection_excludes_csdn_and_prioritizes_official_and_academic_domains() -> None:
+    sources = [
+        SearchDocument(
+            url="https://blog.csdn.net/example/article",
+            title="不应保留的来源",
+            content="内容农场式文章",
+            score=0.99,
+        ),
+        SearchDocument(
+            url="https://example.com/news",
+            title="普通来源",
+            content="普通网页内容",
+            score=0.98,
+        ),
+        SearchDocument(
+            url="https://www.gov.cn/zhengce/test",
+            title="官方来源",
+            content="官方发布内容",
+            score=0.30,
+        ),
+        SearchDocument(
+            url="https://arxiv.org/abs/2401.00001",
+            title="论文来源",
+            content="论文摘要内容",
+            score=0.20,
+        ),
+    ]
+
+    selected = _deduplicate(sources, limit=4)
+
+    assert [str(source.url) for source in selected] == [
+        "https://www.gov.cn/zhengce/test",
+        "https://arxiv.org/abs/2401.00001",
+        "https://example.com/news",
+    ]
+
+
+@pytest.mark.parametrize(
+    ("url", "expected_quality"),
+    [
+        ("https://csdn.net/article", -1),
+        ("https://blog.csdn.net./example/article", -1),
+        ("https://minedu.gov.cn/policy", 1),
+        ("https://www.university.edu/paper", 1),
+        ("https://lab.ac.cn/report", 1),
+        ("https://doi.org/10.1000/example", 1),
+        ("https://pubmed.ncbi.nlm.nih.gov/123456", 1),
+        ("https://ieeexplore.ieee.org/document/1", 1),
+        ("https://dl.acm.org/doi/1", 1),
+        ("https://www.nature.com/articles/example", 1),
+        ("https://www.science.org/doi/example", 1),
+    ],
+)
+def test_source_quality_handles_configured_domain_rules(
+    url: str, expected_quality: int
+) -> None:
+    source = SearchDocument(url=url, title="来源", content="正文", score=0.5)
+
+    assert _source_quality(source) == expected_quality
 
 
 async def _pause_and_resume(mode: ResearchMode):

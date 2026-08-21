@@ -19,6 +19,17 @@ from app.providers.base import ModelProvider, SearchProvider
 
 TRACKING_QUERY_PREFIXES = ("utm_",)
 TRACKING_QUERY_KEYS = {"fbclid", "gclid"}
+LOW_QUALITY_DOMAINS = {"csdn.net"}
+OFFICIAL_DOMAIN_SUFFIXES = {".gov", ".gov.cn", ".edu", ".edu.cn", ".ac.cn"}
+ACADEMIC_DOMAINS = {
+    "acm.org",
+    "arxiv.org",
+    "doi.org",
+    "ieee.org",
+    "nature.com",
+    "pubmed.ncbi.nlm.nih.gov",
+    "science.org",
+}
 
 
 def canonical_url(url: str) -> str:
@@ -48,6 +59,21 @@ def _evidence(value: list[dict[str, Any]]) -> list[Evidence]:
     return [Evidence.model_validate(item) for item in value]
 
 
+def _matches_domain(host: str, domains: set[str]) -> bool:
+    return any(host == domain or host.endswith(f".{domain}") for domain in domains)
+
+
+def _source_quality(source: SearchDocument) -> int:
+    host = (urlsplit(str(source.url)).hostname or "").lower().rstrip(".")
+    if _matches_domain(host, LOW_QUALITY_DOMAINS):
+        return -1
+    if host.endswith(tuple(OFFICIAL_DOMAIN_SUFFIXES)) or _matches_domain(
+        host, ACADEMIC_DOMAINS
+    ):
+        return 1
+    return 0
+
+
 def _deduplicate(items: list[SearchDocument], limit: int) -> list[SearchDocument]:
     selected: dict[str, SearchDocument] = {}
     for item in sorted(items, key=lambda source: source.score, reverse=True):
@@ -56,7 +82,14 @@ def _deduplicate(items: list[SearchDocument], limit: int) -> list[SearchDocument
             selected[key] = SearchDocument.model_validate(
                 {**item.model_dump(), "url": key}
             )
-    return list(selected.values())[:limit]
+    acceptable_sources = [
+        source for source in selected.values() if _source_quality(source) >= 0
+    ]
+    return sorted(
+        acceptable_sources,
+        key=lambda source: (_source_quality(source), source.score),
+        reverse=True,
+    )[:limit]
 
 
 def build_research_graph(
