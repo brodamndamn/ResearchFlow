@@ -229,7 +229,7 @@ describe('ResearchFlow 路由', () => {
     expect(styles).toMatch(/\.header-note\s*\{[^}]*font-size:\s*16px/)
     expect(styles).toMatch(/\.header-nav-button\s*\{[^}]*min-height:\s*46px[^}]*padding:\s*0 16px[^}]*font-size:\s*16px/)
     expect(styles).toMatch(/\.header-nav-button svg\s*\{[^}]*width:\s*20px[^}]*height:\s*20px/)
-    expect(styles).toMatch(/\.app-shell\[data-theme="light"\]\s*\{[\s\S]*?--navy:\s*#eef5f8/)
+    expect(styles).toMatch(/\.app-shell\[data-theme="light"\]\s*\{[\s\S]*?--navy:\s*#f7fbff/)
     expect(styles).toMatch(/\.app-shell\[data-theme="light"\]\s*\{[\s\S]*?--panel:\s*rgba\(255, 255, 255, 0\.88\)/)
     expect(styles).toMatch(/\.theme-toggle\s*\{[^}]*min-width:\s*46px/)
 
@@ -913,6 +913,24 @@ describe('ResearchFlow 路由', () => {
     )
     expect(styles).toMatch(
       /\.workspace-page \.review-card > \.primary-button\s*\{[^}]*font-weight:\s*500/,
+    )
+  })
+
+  it('日间模式使用带边缘青蓝雾化的薄荷网格与标题后方的小型光核', () => {
+    expect(styles).toMatch(
+      /\.app-shell\[data-theme="light"\]\s*\{[^}]*--navy:\s*#f7fbff[^}]*--background-glow:\s*rgba\(42, 255, 190, 0\.34\)[^}]*--edge-haze:\s*rgba\(76, 190, 232, 0\.16\)[^}]*--grid-line:\s*rgba\(13, 181, 168, 0\.26\)[^}]*--grid-glow:\s*rgba\(113, 255, 232, 0\.12\)[^}]*--muted:\s*#365a70/,
+    )
+    expect(styles).toMatch(
+      /\.app-shell\[data-theme="light"\]\s*\{[^}]*background:\s*radial-gradient\(circle 280px at 50% 300px, var\(--background-glow\) 0, transparent 100%\),\s*radial-gradient\(ellipse 32% 70% at 0% 52%, var\(--edge-haze\) 0, transparent 100%\),\s*radial-gradient\(ellipse 32% 70% at 100% 52%, var\(--edge-haze\) 0, transparent 100%\),\s*linear-gradient\(var\(--grid-line\) 1px, transparent 1px\),\s*linear-gradient\(90deg, var\(--grid-line\) 1px, transparent 1px\),\s*linear-gradient\(var\(--grid-glow\) 1px, transparent 2px\),\s*linear-gradient\(90deg, var\(--grid-glow\) 1px, transparent 2px\),\s*var\(--navy\)[^}]*background-size:\s*auto, auto, auto, 36px 36px, 36px 36px, 36px 36px, 36px 36px, auto/,
+    )
+  })
+
+  it('主题切换后输入框占位文字始终具有明确对比度', () => {
+    expect(styles).toMatch(
+      /textarea::placeholder,\s*input::placeholder\s*\{\s*color:\s*#94b4c7;\s*opacity:\s*1;/,
+    )
+    expect(styles).toMatch(
+      /\.app-shell\[data-theme="light"\]\s*textarea::placeholder,\s*\.app-shell\[data-theme="light"\]\s*input::placeholder\s*\{\s*color:\s*#53748a;\s*opacity:\s*1;/,
     )
   })
 

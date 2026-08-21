@@ -48,16 +48,27 @@ a {
 }
 .app-shell[data-theme="light"] {
   color: #183044;
-  --navy: #eef5f8;
+  --navy: #f7fbff;
   --panel: rgba(255, 255, 255, 0.88);
   --panel-strong: #ffffff;
   --line: rgba(48, 94, 122, 0.2);
   --cyan: #098f82;
   --cyan-soft: #087b71;
-  --muted: #587286;
-  --background-glow: #b6e4e5;
+  --background-glow: rgba(42, 255, 190, 0.34);
+  --edge-haze: rgba(76, 190, 232, 0.16);
+  --grid-line: rgba(13, 181, 168, 0.26);
+  --grid-glow: rgba(113, 255, 232, 0.12);
+  --muted: #365a70;
   background:
-    radial-gradient(circle at 50% -20%, var(--background-glow) 0, transparent 40%), var(--navy);
+    radial-gradient(circle 280px at 50% 300px, var(--background-glow) 0, transparent 100%),
+    radial-gradient(ellipse 32% 70% at 0% 52%, var(--edge-haze) 0, transparent 100%),
+    radial-gradient(ellipse 32% 70% at 100% 52%, var(--edge-haze) 0, transparent 100%),
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px),
+    linear-gradient(var(--grid-glow) 1px, transparent 2px),
+    linear-gradient(90deg, var(--grid-glow) 1px, transparent 2px),
+    var(--navy);
+  background-size: auto, auto, auto, 36px 36px, 36px 36px, 36px 36px, 36px 36px, auto;
 }
 .app-shell[data-theme="light"] .site-header {
   background: rgba(247, 252, 253, 0.8);
@@ -96,6 +107,11 @@ a {
   color: #183044;
   border-color: rgba(48, 94, 122, 0.28);
   background: rgba(255, 255, 255, 0.9);
+}
+.app-shell[data-theme="light"] textarea::placeholder,
+.app-shell[data-theme="light"] input::placeholder {
+  color: #53748a;
+  opacity: 1;
 }
 .app-shell[data-theme="light"] label,
 .app-shell[data-theme="light"] legend,
@@ -501,6 +517,11 @@ input {
   outline: 0;
   padding: 13px 14px;
   resize: vertical;
+}
+textarea::placeholder,
+input::placeholder {
+  color: #94b4c7;
+  opacity: 1;
 }
 textarea:focus,
 input:focus {
