@@ -229,7 +229,7 @@ describe('ResearchFlow 路由', () => {
     expect(styles).toMatch(/\.header-note\s*\{[^}]*font-size:\s*16px/)
     expect(styles).toMatch(/\.header-nav-button\s*\{[^}]*min-height:\s*46px[^}]*padding:\s*0 16px[^}]*font-size:\s*16px/)
     expect(styles).toMatch(/\.header-nav-button svg\s*\{[^}]*width:\s*20px[^}]*height:\s*20px/)
-    expect(styles).toMatch(/\.app-shell\[data-theme="light"\]\s*\{[\s\S]*?--navy:\s*#f7fbff/)
+    expect(styles).toMatch(/\.app-shell\[data-theme="light"\]\s*\{[\s\S]*?--navy:\s*#eaf7fb/)
     expect(styles).toMatch(/\.app-shell\[data-theme="light"\]\s*\{[\s\S]*?--panel:\s*rgba\(255, 255, 255, 0\.88\)/)
     expect(styles).toMatch(/\.theme-toggle\s*\{[^}]*min-width:\s*46px/)
 
@@ -916,12 +916,18 @@ describe('ResearchFlow 路由', () => {
     )
   })
 
-  it('日间模式使用带边缘青蓝雾化的薄荷网格与标题后方的小型光核', () => {
+  it('日间模式使用稀疏网格与四角薄荷数据框架', () => {
     expect(styles).toMatch(
-      /\.app-shell\[data-theme="light"\]\s*\{[^}]*--navy:\s*#f7fbff[^}]*--background-glow:\s*rgba\(42, 255, 190, 0\.34\)[^}]*--edge-haze:\s*rgba\(76, 190, 232, 0\.16\)[^}]*--grid-line:\s*rgba\(13, 181, 168, 0\.26\)[^}]*--grid-glow:\s*rgba\(113, 255, 232, 0\.12\)[^}]*--muted:\s*#365a70/,
+      /\.app-shell\[data-theme="light"\]\s*\{[^}]*--navy:\s*#eaf7fb[^}]*--grid-line:\s*rgba\(35, 157, 190, 0\.14\)[^}]*--frame-mint:\s*rgba\(29, 210, 184, 0\.42\)[^}]*--frame-node:\s*rgba\(44, 220, 196, 0\.68\)[^}]*--muted:\s*#365a70/,
     )
     expect(styles).toMatch(
-      /\.app-shell\[data-theme="light"\]\s*\{[^}]*background:\s*radial-gradient\(circle 280px at 50% 300px, var\(--background-glow\) 0, transparent 100%\),\s*radial-gradient\(ellipse 32% 70% at 0% 52%, var\(--edge-haze\) 0, transparent 100%\),\s*radial-gradient\(ellipse 32% 70% at 100% 52%, var\(--edge-haze\) 0, transparent 100%\),\s*linear-gradient\(var\(--grid-line\) 1px, transparent 1px\),\s*linear-gradient\(90deg, var\(--grid-line\) 1px, transparent 1px\),\s*linear-gradient\(var\(--grid-glow\) 1px, transparent 2px\),\s*linear-gradient\(90deg, var\(--grid-glow\) 1px, transparent 2px\),\s*var\(--navy\)[^}]*background-size:\s*auto, auto, auto, 36px 36px, 36px 36px, 36px 36px, 36px 36px, auto/,
+      /\.app-shell\[data-theme="light"\]\s*\{[^}]*background:\s*radial-gradient\(circle at 34px 34px, var\(--frame-node\) 0 2px, transparent 3px\)[\s\S]*?linear-gradient\(var\(--grid-line\) 1px, transparent 1px\)[\s\S]*?background-size:[^}]*64px 64px,\s*64px 64px,\s*auto/,
+    )
+    expect(styles).toMatch(
+      /linear-gradient\(var\(--frame-mint\), var\(--frame-mint\)\) left 34px top 34px\s*\/\s*132px 1px no-repeat/,
+    )
+    expect(styles).toMatch(
+      /linear-gradient\(90deg, var\(--frame-mint\), var\(--frame-mint\)\) right 34px bottom 34px\s*\/\s*1px 132px no-repeat/,
     )
   })
 
