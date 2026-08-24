@@ -15,8 +15,12 @@ dist/
 coverage/
 playwright-report/
 test-results/
+.vite-cache/
+*.tsbuildinfo
 .idea/
 .vscode/
 *.pem
 data/
 .worktrees/
+.pnpm-store/
+.codex/
