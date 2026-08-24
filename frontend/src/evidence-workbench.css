@@ -1,0 +1,1057 @@
+/* ResearchFlow 证据研究台视觉皮肤。
+ * 基础布局和状态规则保留在 styles.css；本文件只负责视觉身份与页面层级。
+ */
+
+.app-shell {
+  --workbench-canvas: #07141d;
+  --workbench-surface: #0d222c;
+  --workbench-surface-raised: #112b36;
+  --workbench-ink: #e7f1ef;
+  --workbench-muted: #91a9ad;
+  --workbench-line: rgba(149, 190, 192, 0.2);
+  --workbench-accent: #4fd1be;
+  --workbench-evidence: #7c9eff;
+  --workbench-caution: #e0a85b;
+  --workbench-shadow: rgba(0, 7, 12, 0.28);
+  --workbench-display: "Songti SC", STSong, SimSun, serif;
+  --workbench-body: Inter, "Noto Sans SC", "Microsoft YaHei", system-ui, sans-serif;
+  --workbench-utility: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+
+  color: var(--workbench-ink);
+  --navy: var(--workbench-canvas);
+  --panel: var(--workbench-surface);
+  --panel-strong: var(--workbench-surface-raised);
+  --line: var(--workbench-line);
+  --cyan: var(--workbench-accent);
+  --cyan-soft: #8ee6d9;
+  --muted: var(--workbench-muted);
+  font-family: var(--workbench-body);
+  background:
+    radial-gradient(circle at 12% 5%, rgba(79, 209, 190, 0.09), transparent 30rem),
+    radial-gradient(circle at 92% 22%, rgba(124, 158, 255, 0.08), transparent 32rem),
+    linear-gradient(rgba(139, 181, 184, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(139, 181, 184, 0.035) 1px, transparent 1px),
+    var(--workbench-canvas);
+  background-attachment: fixed;
+  background-size: auto, auto, 32px 32px, 32px 32px, auto;
+}
+
+.app-shell[data-theme="light"] {
+  --workbench-canvas: #f1f6f4;
+  --workbench-surface: #fcfefd;
+  --workbench-surface-raised: #ffffff;
+  --workbench-ink: #173139;
+  --workbench-muted: #557078;
+  --workbench-line: rgba(45, 86, 94, 0.2);
+  --workbench-accent: #147d72;
+  --workbench-evidence: #4169a8;
+  --workbench-caution: #a96d19;
+  --workbench-shadow: rgba(37, 71, 76, 0.12);
+  color: var(--workbench-ink);
+  --navy: var(--workbench-canvas);
+  --panel: var(--workbench-surface);
+  --panel-strong: var(--workbench-surface-raised);
+  --line: var(--workbench-line);
+  --cyan: var(--workbench-accent);
+  --cyan-soft: #0f756b;
+  --muted: var(--workbench-muted);
+  background:
+    radial-gradient(circle at 10% 0%, rgba(51, 185, 165, 0.13), transparent 30rem),
+    radial-gradient(circle at 94% 18%, rgba(65, 105, 168, 0.1), transparent 32rem),
+    radial-gradient(circle, rgba(32, 94, 99, 0.075) 1px, transparent 1.2px),
+    linear-gradient(180deg, #f8fbf9 0%, var(--workbench-canvas) 58%, #eaf2ef 100%);
+  background-attachment: fixed;
+  background-size: auto, auto, 24px 24px, auto;
+}
+
+.site-main {
+  overflow: clip;
+}
+
+.app-shell .site-header {
+  height: 88px;
+  border-color: var(--workbench-line);
+  background: color-mix(in srgb, var(--workbench-canvas) 90%, transparent);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.025);
+}
+
+.app-shell .brand {
+  gap: 12px;
+  color: var(--workbench-ink);
+  letter-spacing: -0.035em;
+}
+
+.app-shell .brand-mark {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  color: var(--workbench-canvas);
+  border: 1px solid color-mix(in srgb, var(--workbench-accent) 72%, transparent);
+  border-radius: 6px;
+  background: var(--workbench-accent);
+  box-shadow: 7px 7px 0 color-mix(in srgb, var(--workbench-evidence) 18%, transparent);
+}
+
+.app-shell .header-note {
+  font-family: var(--workbench-utility);
+  color: var(--workbench-muted);
+  letter-spacing: 0.04em;
+}
+
+.app-shell .header-nav-button {
+  color: var(--workbench-muted);
+  border-color: var(--workbench-line);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--workbench-surface) 78%, transparent);
+  box-shadow: none;
+}
+
+.app-shell .header-nav-button:hover,
+.app-shell .header-nav-button:focus-visible,
+.app-shell .header-nav-button[aria-current="page"] {
+  color: var(--workbench-accent);
+  border-color: color-mix(in srgb, var(--workbench-accent) 52%, transparent);
+  background: color-mix(in srgb, var(--workbench-accent) 9%, var(--workbench-surface));
+}
+
+.app-shell :is(a, button, input, textarea):focus-visible {
+  outline: 2px solid var(--workbench-evidence);
+  outline-offset: 3px;
+}
+
+.app-shell .panel {
+  border-color: var(--workbench-line);
+  border-radius: 8px;
+  background: var(--workbench-surface);
+  box-shadow: 0 22px 55px var(--workbench-shadow);
+}
+
+.app-shell[data-theme="light"] :is(.panel, .showcase-card, .recent-card, .source-card, .terminal-card) {
+  border-color: var(--workbench-line);
+  background: var(--workbench-surface);
+  box-shadow: 0 20px 50px var(--workbench-shadow);
+}
+
+/* 首页：产品命题与研究控制台 */
+.app-shell .hero {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(500px, 1.1fr);
+  grid-template-rows: auto auto;
+  column-gap: clamp(42px, 6vw, 82px);
+  row-gap: 18px;
+  align-items: start;
+  padding-top: clamp(52px, 7vw, 92px);
+  text-align: left;
+}
+
+.hero-intro {
+  min-width: 0;
+  grid-row: 1 / span 2;
+  padding-top: 16px;
+}
+
+.app-shell .hero .eyebrow,
+.app-shell .report-header .eyebrow {
+  gap: 9px;
+  padding: 0 0 11px;
+  color: var(--workbench-accent);
+  border: 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--workbench-accent) 48%, transparent);
+  border-radius: 0;
+  background: transparent;
+  font-family: var(--workbench-utility);
+  font-size: 13px;
+  letter-spacing: 0.08em;
+}
+
+.app-shell .hero h1 {
+  max-width: 610px;
+  margin: 32px 0 26px;
+  color: var(--workbench-ink);
+  font-family: var(--workbench-display);
+  font-size: clamp(48px, 5.3vw, 76px);
+  font-weight: 500;
+  line-height: 1.08;
+  letter-spacing: -0.055em;
+}
+
+.app-shell .hero h1 span {
+  color: var(--workbench-accent);
+}
+
+.app-shell .hero-copy {
+  max-width: 580px;
+  margin: 0;
+  color: var(--workbench-muted);
+  font-size: 17px;
+  line-height: 1.9;
+}
+
+.app-shell .research-console {
+  position: relative;
+  grid-column: 2;
+  grid-row: 1;
+  padding: 34px;
+  border-top: 3px solid var(--workbench-accent);
+}
+
+.research-console::before {
+  content: "RESEARCH QUERY";
+  position: absolute;
+  top: -31px;
+  right: 0;
+  color: var(--workbench-muted);
+  font-family: var(--workbench-utility);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+}
+
+.app-shell .research-console > label,
+.app-shell .research-console legend {
+  color: var(--workbench-ink);
+  font-family: var(--workbench-utility);
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.app-shell .research-console > textarea,
+.app-shell .review-card textarea,
+.app-shell .review-card input {
+  color: var(--workbench-ink);
+  border-color: var(--workbench-line);
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--workbench-canvas) 66%, var(--workbench-surface));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+.app-shell .research-console > textarea {
+  min-height: 190px;
+}
+
+.app-shell .mode-grid {
+  gap: 10px;
+}
+
+.app-shell .mode-card {
+  position: relative;
+  min-height: 94px;
+  padding: 18px;
+  color: var(--workbench-muted);
+  border-color: var(--workbench-line);
+  border-radius: 5px;
+  background: transparent;
+  transition: border-color 160ms ease, background 160ms ease, transform 160ms ease;
+}
+
+.app-shell .mode-card:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--workbench-accent) 52%, transparent);
+}
+
+.app-shell .mode-card.selected {
+  color: var(--workbench-accent);
+  border-color: var(--workbench-accent);
+  background: color-mix(in srgb, var(--workbench-accent) 9%, transparent);
+}
+
+.app-shell .mode-card span,
+.app-shell .mode-card strong {
+  color: var(--workbench-ink);
+}
+
+.app-shell .mode-card small {
+  color: var(--workbench-muted);
+}
+
+.app-shell .primary-button {
+  min-height: 52px;
+  color: #061c1a;
+  border: 1px solid color-mix(in srgb, var(--workbench-accent) 70%, #ffffff);
+  border-radius: 5px;
+  background: var(--workbench-accent);
+  box-shadow: 6px 6px 0 color-mix(in srgb, var(--workbench-evidence) 18%, transparent);
+  transition: transform 160ms ease, box-shadow 160ms ease, filter 160ms ease;
+}
+
+.app-shell .primary-button:not(:disabled):hover {
+  filter: brightness(1.07);
+  transform: translate(-2px, -2px);
+  box-shadow: 9px 9px 0 color-mix(in srgb, var(--workbench-evidence) 20%, transparent);
+}
+
+.app-shell[data-theme="light"] .primary-button {
+  color: #ffffff;
+}
+
+.app-shell .research-scope {
+  grid-column: 2;
+  grid-row: 2;
+  gap: 10px;
+  margin-top: 0;
+}
+
+.app-shell .scope-item {
+  min-height: 78px;
+  padding: 15px 17px;
+  border-color: var(--workbench-line);
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--workbench-surface) 72%, transparent);
+}
+
+.app-shell .scope-item strong {
+  color: var(--workbench-ink);
+  font-size: 15px;
+}
+
+.app-shell .scope-item span {
+  color: var(--workbench-muted);
+  font-size: 13px;
+}
+
+/* 全站签名：证据路径 */
+.evidence-path {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0;
+  width: 100%;
+  margin: 42px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.evidence-path-step {
+  position: relative;
+  display: grid;
+  gap: 9px;
+  justify-items: start;
+  min-width: 0;
+  color: var(--workbench-muted);
+  font-family: var(--workbench-utility);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+}
+
+.evidence-path-step:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  top: 12px;
+  right: 7px;
+  left: 31px;
+  height: 1px;
+  background: var(--workbench-line);
+}
+
+.evidence-path-node {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 25px;
+  height: 25px;
+  color: var(--workbench-muted);
+  border: 1px solid var(--workbench-line);
+  border-radius: 50%;
+  background: var(--workbench-canvas);
+  font-size: 10px;
+}
+
+.evidence-path-step[data-state="complete"] {
+  color: var(--workbench-accent);
+}
+
+.evidence-path-step[data-state="complete"] .evidence-path-node {
+  color: var(--workbench-canvas);
+  border-color: var(--workbench-accent);
+  background: var(--workbench-accent);
+}
+
+.evidence-path-step[data-state="complete"]::after {
+  background: var(--workbench-accent);
+}
+
+.evidence-path-step[data-state="current"] {
+  color: var(--workbench-ink);
+  font-weight: 700;
+}
+
+.evidence-path-step[data-state="current"] .evidence-path-node {
+  color: var(--workbench-ink);
+  border-color: var(--workbench-accent);
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--workbench-accent) 13%, transparent);
+}
+
+/* 首页内容层级 */
+.app-shell .home-section {
+  padding-top: 84px;
+}
+
+.app-shell .section-heading {
+  align-items: end;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--workbench-line);
+}
+
+.app-shell .section-heading .kicker,
+.app-shell .timeline-panel .kicker,
+.app-shell .review-card .kicker,
+.app-shell .report-toc .kicker {
+  color: var(--workbench-accent);
+  font-family: var(--workbench-utility);
+  font-size: 12px;
+  letter-spacing: 0.12em;
+}
+
+.app-shell .section-heading h2 {
+  margin-top: 10px;
+  color: var(--workbench-ink);
+  font-family: var(--workbench-display);
+  font-size: clamp(34px, 4vw, 52px);
+  font-weight: 500;
+  letter-spacing: -0.04em;
+}
+
+.app-shell .section-heading p {
+  max-width: 430px;
+  color: var(--workbench-muted);
+  line-height: 1.8;
+}
+
+.app-shell .showcase-grid {
+  grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+  grid-template-rows: repeat(2, minmax(220px, auto));
+  gap: 14px;
+}
+
+.app-shell .showcase-card {
+  min-height: 0;
+  padding: 30px;
+  color: var(--workbench-ink);
+  border-color: var(--workbench-line);
+  border-radius: 6px;
+  background: var(--workbench-surface);
+  box-shadow: none;
+  transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+  content-visibility: auto;
+  contain-intrinsic-size: 0 260px;
+}
+
+.app-shell .showcase-card:first-child {
+  grid-row: 1 / span 2;
+  padding: 42px;
+}
+
+.app-shell .showcase-card:hover {
+  transform: translateY(-4px);
+  border-color: color-mix(in srgb, var(--workbench-accent) 54%, transparent);
+  box-shadow: 0 22px 48px var(--workbench-shadow);
+}
+
+.app-shell .showcase-card h3 {
+  max-width: 520px;
+  margin-top: 60px;
+  color: var(--workbench-ink);
+  font-family: var(--workbench-display);
+  font-size: 29px;
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+.app-shell .showcase-card:first-child h3 {
+  margin-top: 110px;
+  font-size: 42px;
+}
+
+.app-shell .showcase-card p {
+  color: var(--workbench-muted);
+  font-size: 15px;
+  line-height: 1.8;
+}
+
+.app-shell .case-index {
+  color: color-mix(in srgb, var(--workbench-evidence) 28%, transparent);
+  font-family: var(--workbench-utility);
+  font-size: 64px;
+}
+
+.app-shell .mode-pill,
+.app-shell .recent-mode-pill,
+.app-shell .status-badge,
+.app-shell .recent-status,
+.app-shell .locked-plan-badge {
+  border-radius: 3px;
+  font-family: var(--workbench-utility);
+  letter-spacing: 0.03em;
+}
+
+.app-shell .text-link {
+  color: var(--workbench-accent);
+  font-family: var(--workbench-utility);
+  font-size: 13px;
+}
+
+.app-shell .recent-list {
+  gap: 9px;
+}
+
+.app-shell .recent-card {
+  min-height: 96px;
+  border-color: var(--workbench-line);
+  border-radius: 5px;
+  background: var(--workbench-surface);
+  box-shadow: none;
+  content-visibility: auto;
+  contain-intrinsic-size: 0 96px;
+}
+
+.app-shell .recent-card:hover {
+  border-color: color-mix(in srgb, var(--workbench-evidence) 50%, transparent);
+}
+
+.app-shell .recent-card strong {
+  color: var(--workbench-ink);
+}
+
+/* 工作台：过程优先 */
+.app-shell .workspace-page {
+  padding-top: 54px;
+}
+
+.app-shell .workspace-header {
+  align-items: end;
+  margin-bottom: 0;
+  padding-bottom: 32px;
+  border-bottom: 1px solid var(--workbench-line);
+}
+
+.app-shell .workspace-header h1 {
+  max-width: 920px;
+  margin: 18px 0 10px;
+  color: var(--workbench-ink);
+  font-family: var(--workbench-display);
+  font-size: clamp(38px, 4.6vw, 60px);
+  font-weight: 500;
+  letter-spacing: -0.04em;
+}
+
+.app-shell .workspace-header p {
+  color: var(--workbench-muted);
+  font-family: var(--workbench-utility);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.workspace-page > .evidence-path {
+  margin: 28px 0 40px;
+  padding: 0 4px 28px;
+  border-bottom: 1px solid var(--workbench-line);
+}
+
+.app-shell .workspace-grid {
+  grid-template-columns: 320px minmax(0, 1fr);
+  gap: 24px;
+}
+
+.app-shell .timeline-panel {
+  top: 112px;
+  padding: 26px;
+  border-left: 3px solid var(--workbench-evidence);
+}
+
+.app-shell .timeline-panel h2,
+.app-shell .review-card h2,
+.app-shell .progress-card h2,
+.app-shell .terminal-card h2 {
+  color: var(--workbench-ink);
+  font-family: var(--workbench-display);
+  font-weight: 500;
+}
+
+.app-shell .timeline-item {
+  content-visibility: auto;
+  contain-intrinsic-size: 0 84px;
+}
+
+.app-shell .timeline-item strong {
+  color: var(--workbench-ink);
+}
+
+.app-shell .timeline-dot {
+  color: var(--workbench-canvas);
+  border-color: var(--workbench-accent);
+  background: var(--workbench-accent);
+}
+
+.app-shell .review-card {
+  padding: 34px;
+  border-top: 3px solid var(--workbench-accent);
+}
+
+.app-shell .review-icon {
+  color: var(--workbench-accent);
+  border-color: color-mix(in srgb, var(--workbench-accent) 44%, transparent);
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--workbench-accent) 9%, transparent);
+}
+
+.app-shell .review-card > p,
+.app-shell .terminal-card p,
+.app-shell .progress-card p {
+  color: var(--workbench-muted);
+}
+
+.app-shell .terminal-card {
+  border-radius: 5px;
+  background: var(--workbench-surface);
+}
+
+.app-shell .locked-plan-card {
+  filter: none;
+  opacity: 0.82;
+}
+
+/* 报告：阅读与来源档案 */
+.app-shell .report-page {
+  padding-top: 0;
+}
+
+.app-shell .report-cover {
+  padding: 62px 0 46px;
+  border-color: var(--workbench-line);
+}
+
+.app-shell .report-header h1 {
+  max-width: 980px;
+  margin: 28px auto 22px;
+  color: var(--workbench-ink);
+  font-family: var(--workbench-display);
+  font-size: clamp(44px, 6vw, 72px);
+  font-weight: 500;
+  letter-spacing: -0.045em;
+}
+
+.app-shell .metric-row {
+  color: var(--workbench-muted);
+  font-family: var(--workbench-utility);
+  font-size: 12px;
+}
+
+.report-cover > .evidence-path {
+  max-width: 680px;
+  margin: 38px auto 0;
+  text-align: left;
+}
+
+.app-shell .report-header .ghost-button {
+  position: static;
+  margin-top: 34px;
+  color: var(--workbench-ink);
+  border: 1px solid var(--workbench-line);
+  border-radius: 5px;
+  background: var(--workbench-surface);
+}
+
+.app-shell .report-layout {
+  grid-template-columns: 238px minmax(0, 760px);
+  gap: clamp(42px, 6vw, 76px);
+  padding-top: 54px;
+}
+
+.app-shell .report-toc {
+  top: 112px;
+  padding: 24px;
+  border-left: 3px solid var(--workbench-evidence);
+  box-shadow: none;
+}
+
+.app-shell .report-toc a {
+  color: var(--workbench-muted);
+  border-color: var(--workbench-line);
+  font-family: var(--workbench-utility);
+  font-size: 14px;
+}
+
+.app-shell .report-toc a:hover {
+  color: var(--workbench-accent);
+}
+
+.app-shell .markdown-body {
+  color: var(--workbench-ink);
+  font-size: 18px;
+}
+
+.app-shell .markdown-body h2,
+.app-shell .markdown-body h3 {
+  color: var(--workbench-ink);
+  font-family: var(--workbench-display);
+  font-weight: 500;
+}
+
+.app-shell .markdown-body h2 {
+  margin-top: 58px;
+  border-color: var(--workbench-line);
+  font-size: 34px;
+}
+
+.app-shell .markdown-body p {
+  line-height: 2;
+}
+
+.app-shell .markdown-body blockquote {
+  color: var(--workbench-muted);
+  border-left-color: var(--workbench-evidence);
+  background: color-mix(in srgb, var(--workbench-evidence) 7%, transparent);
+}
+
+.app-shell .markdown-body a {
+  color: var(--workbench-evidence);
+}
+
+.app-shell .sources-section {
+  margin-top: 84px;
+}
+
+.app-shell .source-list {
+  gap: 10px;
+}
+
+.app-shell .source-card {
+  padding: 24px 0;
+  border-width: 0 0 1px;
+  border-color: var(--workbench-line);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  content-visibility: auto;
+  contain-intrinsic-size: 0 170px;
+}
+
+.app-shell .source-card-link {
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    padding 180ms ease,
+    background-color 180ms ease,
+    border-color 180ms ease,
+    transform 180ms ease;
+}
+
+.app-shell .source-card-link:hover {
+  padding-inline: 18px;
+  border-color: var(--workbench-accent);
+  background: color-mix(in srgb, var(--workbench-accent) 9%, transparent);
+  transform: translateX(4px);
+}
+
+.app-shell .source-card-link:focus-visible {
+  padding-inline: 18px;
+  outline: 2px solid var(--workbench-evidence);
+  outline-offset: 4px;
+  background: color-mix(in srgb, var(--workbench-evidence) 10%, transparent);
+}
+
+.app-shell .source-card-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.app-shell .source-open-icon {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+  margin-top: 5px;
+  color: var(--workbench-muted);
+  transition: color 180ms ease, transform 180ms ease;
+}
+
+.app-shell .source-card-link:hover .source-open-icon,
+.app-shell .source-card-link:focus-visible .source-open-icon {
+  color: var(--workbench-accent);
+  transform: translate(2px, -2px);
+}
+
+.app-shell[data-theme="light"] .source-card {
+  background: transparent;
+  box-shadow: none;
+}
+
+.app-shell[data-theme="light"] .source-card-link:hover {
+  border-color: var(--workbench-accent);
+  background: color-mix(in srgb, var(--workbench-accent) 13%, var(--workbench-surface));
+  box-shadow: inset 4px 0 0 color-mix(in srgb, var(--workbench-accent) 62%, transparent);
+}
+
+.app-shell[data-theme="light"] .source-card-link:focus-visible {
+  background: color-mix(in srgb, var(--workbench-evidence) 12%, var(--workbench-surface));
+  box-shadow: inset 4px 0 0 color-mix(in srgb, var(--workbench-evidence) 62%, transparent);
+}
+
+.app-shell .source-number {
+  color: var(--workbench-accent);
+  font-family: var(--workbench-utility);
+  font-size: 18px;
+}
+
+.app-shell .source-card .source-title,
+.app-shell .source-card strong {
+  color: var(--workbench-ink);
+  font-family: var(--workbench-display);
+  font-size: 21px;
+}
+
+.app-shell .source-card p,
+.app-shell .source-card div > span {
+  color: var(--workbench-muted);
+}
+
+.app-shell footer {
+  color: var(--workbench-muted);
+  font-family: var(--workbench-utility);
+  letter-spacing: 0.04em;
+}
+
+/* 弹窗和错误状态沿用同一研究档案语言。 */
+.app-shell .confirm-overlay {
+  background: rgba(2, 12, 17, 0.78);
+  backdrop-filter: blur(8px);
+}
+
+.app-shell .confirm-dialog {
+  color: var(--workbench-ink);
+  border-radius: 7px;
+  background: var(--workbench-surface);
+  box-shadow: 0 34px 90px rgba(0, 0, 0, 0.38);
+}
+
+.app-shell .confirm-dialog h2 {
+  color: var(--workbench-ink);
+  font-family: var(--workbench-display);
+}
+
+.app-shell .confirm-dialog p {
+  color: var(--workbench-muted);
+}
+
+@keyframes evidence-current {
+  50% {
+    box-shadow: 0 0 0 8px color-mix(in srgb, var(--workbench-accent) 5%, transparent);
+  }
+}
+
+.evidence-path-step[data-state="current"] .evidence-path-node {
+  animation: evidence-current 2.4s ease-in-out infinite;
+}
+
+@media (max-width: 900px) {
+  .app-shell .hero {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto;
+    gap: 34px;
+    padding-top: 52px;
+  }
+
+  .hero-intro,
+  .app-shell .research-console,
+  .app-shell .research-scope {
+    grid-column: 1;
+    grid-row: auto;
+  }
+
+  .app-shell .hero h1,
+  .app-shell .hero-copy {
+    max-width: 720px;
+  }
+
+  .app-shell .showcase-grid {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto;
+  }
+
+  .app-shell .showcase-card:first-child {
+    grid-column: 1 / -1;
+    grid-row: auto;
+  }
+
+  .app-shell .showcase-card:first-child h3 {
+    margin-top: 70px;
+  }
+
+  .app-shell .workspace-grid,
+  .app-shell .report-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .app-shell .timeline-panel,
+  .app-shell .report-toc {
+    position: static;
+  }
+}
+
+@media (max-width: 800px) {
+  .app-shell .site-header {
+    height: 78px;
+  }
+
+  .app-shell .hero {
+    padding-top: 42px;
+  }
+
+  .app-shell .research-console {
+    padding: 26px;
+  }
+
+  .app-shell .showcase-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .app-shell .showcase-card:first-child {
+    grid-column: auto;
+  }
+
+  .app-shell .showcase-card,
+  .app-shell .showcase-card:first-child {
+    min-height: 290px;
+    padding: 28px;
+  }
+
+  .app-shell .showcase-card h3,
+  .app-shell .showcase-card:first-child h3 {
+    margin-top: 56px;
+    font-size: 30px;
+  }
+
+  .app-shell .workspace-header {
+    align-items: flex-start;
+  }
+
+  .report-cover > .evidence-path {
+    max-width: none;
+  }
+}
+
+@media (max-width: 520px) {
+  .app-shell .site-header {
+    height: 70px;
+  }
+
+  .app-shell .brand-mark {
+    width: 34px;
+    height: 34px;
+    box-shadow: 4px 4px 0 color-mix(in srgb, var(--workbench-evidence) 18%, transparent);
+  }
+
+  .app-shell .hero {
+    gap: 26px;
+    padding-top: 34px;
+  }
+
+  .hero-intro {
+    padding-top: 0;
+  }
+
+  .app-shell .hero h1 {
+    margin: 24px 0 20px;
+    font-size: clamp(40px, 12vw, 54px);
+  }
+
+  .app-shell .hero-copy {
+    font-size: 16px;
+  }
+
+  .app-shell .research-console {
+    padding: 20px;
+  }
+
+  .research-console::before {
+    display: none;
+  }
+
+  .app-shell .research-scope {
+    grid-template-columns: 1fr;
+  }
+
+  .evidence-path {
+    margin-top: 30px;
+  }
+
+  .evidence-path-step {
+    gap: 7px;
+    font-size: 10px;
+    letter-spacing: 0;
+  }
+
+  .evidence-path-node {
+    width: 22px;
+    height: 22px;
+  }
+
+  .evidence-path-step:not(:last-child)::after {
+    top: 10px;
+    right: 5px;
+    left: 27px;
+  }
+
+  .app-shell .home-section {
+    padding-top: 64px;
+  }
+
+  .app-shell .section-heading h2 {
+    font-size: 34px;
+  }
+
+  .app-shell .showcase-card,
+  .app-shell .showcase-card:first-child {
+    min-height: 260px;
+    padding: 22px;
+  }
+
+  .app-shell .showcase-card h3,
+  .app-shell .showcase-card:first-child h3 {
+    margin-top: 46px;
+    font-size: 26px;
+  }
+
+  .app-shell .workspace-page {
+    padding-top: 34px;
+  }
+
+  .workspace-page > .evidence-path {
+    margin-bottom: 30px;
+    padding-bottom: 22px;
+  }
+
+  .app-shell .workspace-header h1 {
+    font-size: 38px;
+  }
+
+  .app-shell .timeline-panel,
+  .app-shell .review-card {
+    padding: 22px;
+  }
+
+  .app-shell .report-cover {
+    padding: 42px 0 34px;
+  }
+
+  .app-shell .report-header h1 {
+    font-size: 42px;
+  }
+
+  .app-shell .report-layout {
+    padding-top: 34px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-shell *,
+  .app-shell *::before,
+  .app-shell *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

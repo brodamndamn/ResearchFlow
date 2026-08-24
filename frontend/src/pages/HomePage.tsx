@@ -2,7 +2,6 @@ import {
   ArrowRight,
   CircleCheck,
   Clock3,
-  Compass,
   Gauge,
   SearchCheck,
   ShieldAlert,
@@ -12,6 +11,7 @@ import {
 import { FormEvent, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
+import { EvidencePath } from '../components/EvidencePath'
 import {
   ApiError,
   createResearch,
@@ -192,14 +192,17 @@ export function HomePage() {
   return (
     <>
       <section className="hero section-wrap">
-        <div className="eyebrow"><Sparkles size={15} /> 可观察、可审核、有引用</div>
-        <h1>把一个问题，研究成<br /><span>有证据的中文报告</span></h1>
-        <p className="hero-copy">
-          ResearchFlow 会规划问题、搜索可信来源、整理证据并生成可追溯引用的报告。
-          在搜索前，你可以审核并修改研究计划。
-        </p>
+        <div className="hero-intro">
+          <div className="eyebrow"><Sparkles size={15} /> 可观察、可审核、有引用</div>
+          <h1>把一个问题，研究成<br /><span>有证据的中文报告</span></h1>
+          <p className="hero-copy">
+            ResearchFlow 会规划问题、搜索可信来源、整理证据并生成可追溯引用的报告。
+            在搜索前，你可以审核并修改研究计划。
+          </p>
+          <EvidencePath currentStage="question" />
+        </div>
 
-        <form className="research-form panel" onSubmit={submit}>
+        <form className="research-form research-console panel" onSubmit={submit}>
           <label htmlFor="topic">研究主题</label>
           <textarea
             id="topic"
@@ -261,13 +264,6 @@ export function HomePage() {
           </div>
         </aside>
 
-        <div className="process-strip" aria-label="研究流程">
-          <span><Compass size={17} /> 规划问题</span>
-          <span>→</span>
-          <span><SearchCheck size={17} /> 搜索证据</span>
-          <span>→</span>
-          <span><Sparkles size={17} /> 撰写校验</span>
-        </div>
       </section>
 
       <section className="section-wrap section-block home-section">

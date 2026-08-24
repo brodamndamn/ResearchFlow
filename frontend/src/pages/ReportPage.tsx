@@ -4,8 +4,9 @@ import ReactMarkdown from 'react-markdown'
 import { useParams } from 'react-router-dom'
 import remarkGfm from 'remark-gfm'
 
+import { EvidencePath } from '../components/EvidencePath'
 import { getResearch } from '../lib/api'
-import type { ResearchReport } from '../lib/types'
+import type { ReportSource, ResearchReport } from '../lib/types'
 
 export function ReportPage() {
   const { id = '' } = useParams()
@@ -44,7 +45,7 @@ export function ReportPage() {
 
   return (
     <section className="section-wrap report-page">
-      <header className="report-header">
+      <header className="report-header report-cover">
         <div className="eyebrow"><Check size={15} /> 研究已完成</div>
         <h1>{report.title}</h1>
         <div className="metric-row">
@@ -52,6 +53,7 @@ export function ReportPage() {
           <span><Quote size={17} /> {report.citationCount} 处引用</span>
           <span><Clock3 size={17} /> {report.durationSeconds} 秒</span>
         </div>
+        <EvidencePath currentStage="report" label="已完成研究证据路径" />
         <button className="ghost-button" onClick={copyLink}>{copied ? <Check size={17} /> : <Copy size={17} />}{copied ? '已复制' : '复制报告链接'}</button>
       </header>
 
@@ -84,23 +86,44 @@ export function ReportPage() {
             <div className="section-heading"><div><span className="kicker">证据可追溯</span><h2>参考来源</h2></div></div>
             <div className="source-list">
               {report.sources.map((source, index) => (
-                <div className="source-card" key={source.id}>
-                  <span className="source-number">[{index + 1}]</span>
-                  <div>
-                    {safeExternalUrl(source.url) ? (
-                      <a href={source.url} target="_blank" rel="noreferrer"><span className="source-title">{source.title}</span><ExternalLink size={14} /></a>
-                    ) : (
-                      <strong className="source-title">{source.title}</strong>
-                    )}
-                    <p>{source.snippet}</p><span><Link2 size={13} /> {source.domain}</span>
-                  </div>
-                </div>
+                <SourceCard source={source} index={index} key={source.id} />
               ))}
             </div>
           </section>
         </article>
       </div>
     </section>
+  )
+}
+
+function SourceCard({ source, index }: { source: ReportSource; index: number }) {
+  const hasSafeUrl = safeExternalUrl(source.url)
+  const content = (
+    <>
+      <span className="source-number">[{index + 1}]</span>
+      <div>
+        <div className="source-card-heading">
+          <strong className="source-title">{source.title}</strong>
+          {hasSafeUrl && <ExternalLink className="source-open-icon" aria-hidden="true" />}
+        </div>
+        <p>{source.snippet}</p>
+        <span><Link2 size={13} /> {source.domain}</span>
+      </div>
+    </>
+  )
+
+  return hasSafeUrl ? (
+    <a
+      className="source-card source-card-link"
+      href={source.url}
+      target="_blank"
+      rel="noreferrer"
+      aria-label={source.title}
+    >
+      {content}
+    </a>
+  ) : (
+    <div className="source-card">{content}</div>
   )
 }
 

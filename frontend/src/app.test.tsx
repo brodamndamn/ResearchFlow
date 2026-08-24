@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { AppRoutes } from './app'
 import type { ResearchSnapshot, Showcase } from './lib/types'
+import workbenchStyles from './evidence-workbench.css?raw'
 import styles from './styles.css?raw'
 import indexHtml from '../index.html?raw'
 
@@ -256,19 +257,41 @@ describe('ResearchFlow 路由', () => {
     expect(styles).toMatch(/\.app-shell\[data-theme="light"\]\s+\.confirm-dialog-actions \.danger-button:hover\s*\{[^}]*background:\s*#8f1b24/)
   })
 
-  it('研究流程在桌面和手机端都保持清晰可读', () => {
+  it('证据路径在桌面和手机端都保持清晰可读', () => {
     vi.stubGlobal('fetch', createFetchRouter({ showcases }))
     renderApp('/')
 
-    expect(screen.getByLabelText('研究流程')).toHaveClass('process-strip')
-    expect(styles).toMatch(/\.process-strip\s*\{[^}]*gap:\s*20px[^}]*font-size:\s*17px/)
-    expect(styles).toMatch(/\.process-strip span\s*\{[^}]*gap:\s*8px/)
-    expect(styles).toMatch(/\.process-strip span svg\s*\{[^}]*width:\s*21px[^}]*height:\s*21px/)
+    expect(screen.getByLabelText('研究证据路径')).toHaveClass('evidence-path')
+    expect(workbenchStyles).toMatch(/\.evidence-path\s*\{[^}]*display:\s*grid[^}]*grid-template-columns:\s*repeat\(5, minmax\(0, 1fr\)\)/)
+    expect(workbenchStyles).toMatch(/\.evidence-path-step\[data-state="current"\]/)
+    expect(workbenchStyles).toMatch(/@media \(max-width:\s*520px\)[\s\S]*?\.evidence-path/)
+  })
 
-    const phoneStart = styles.indexOf('@media (max-width: 520px)')
-    const phoneStyles = styles.slice(phoneStart)
-    expect(phoneStyles).toMatch(/\.process-strip\s*\{[^}]*gap:\s*10px[^}]*font-size:\s*14px/)
-    expect(phoneStyles).toMatch(/\.process-strip span svg\s*\{[^}]*width:\s*18px[^}]*height:\s*18px/)
+  it('证据研究台为夜间与日间模式提供独立视觉 token 和动效降级', () => {
+    expect(workbenchStyles).toMatch(/\.app-shell\s*\{[^}]*--workbench-canvas:\s*#07141d[^}]*--workbench-accent:\s*#4fd1be/)
+    expect(workbenchStyles).toMatch(/\.app-shell\[data-theme="light"\]\s*\{[^}]*--workbench-canvas:\s*#f1f6f4[^}]*--workbench-accent:\s*#147d72/)
+    expect(workbenchStyles).toMatch(/content-visibility:\s*auto/)
+    expect(workbenchStyles).toMatch(/@media \(prefers-reduced-motion:\s*reduce\)/)
+  })
+
+  it('首页使用五阶段证据路径解释研究方法', () => {
+    vi.stubGlobal('fetch', createFetchRouter({ showcases }))
+    renderApp('/')
+
+    const path = screen.getByRole('list', { name: '研究证据路径' })
+    expect(within(path).getAllByRole('listitem')).toHaveLength(5)
+    for (const stage of ['问题', '计划', '搜索', '证据', '报告']) {
+      expect(within(path).getByText(stage)).toBeInTheDocument()
+    }
+    expect(within(path).getByText('问题')).toHaveAttribute('aria-current', 'step')
+  })
+
+  it('首页将产品命题与研究控制台分为两个语义区域', () => {
+    vi.stubGlobal('fetch', createFetchRouter({ showcases }))
+    renderApp('/')
+
+    expect(screen.getByRole('heading', { name: /把一个问题/ }).closest('.hero-intro')).not.toBeNull()
+    expect(screen.getByLabelText('研究主题').closest('.research-console')).not.toBeNull()
   })
 
   it('研究范围提示使用更大的卡片与文字，同时保持原有图标尺寸', () => {
@@ -735,6 +758,8 @@ describe('ResearchFlow 路由', () => {
     expect(title.closest('.workspace-page')).not.toBeNull()
     expect(screen.getByText('研究时间线').closest('.timeline-panel')).not.toBeNull()
     expect(screen.getByText('审核研究计划').closest('.review-card')).not.toBeNull()
+    const evidencePath = screen.getByRole('list', { name: '当前研究证据路径' })
+    expect(within(evidencePath).getByText('计划')).toHaveAttribute('aria-current', 'step')
     expect(styles).toMatch(/\.workspace-page\s*\{[^}]*padding-top:\s*24px/)
     expect(styles).toMatch(/\.workspace-header h1\s*\{[^}]*font-size:\s*42px/)
     expect(styles).toMatch(/\.workspace-header p\s*\{[^}]*font-size:\s*16px/)
@@ -1043,6 +1068,8 @@ describe('ResearchFlow 路由', () => {
     expect(screen.getByText('73 秒')).toBeInTheDocument()
     expect(screen.getByText('[1]')).toBeInTheDocument()
     expect(screen.getByText('[2]')).toBeInTheDocument()
+    const evidencePath = screen.getByRole('list', { name: '已完成研究证据路径' })
+    expect(within(evidencePath).getByText('报告')).toHaveAttribute('aria-current', 'step')
     expect(within(screen.getByTestId('markdown-report')).queryByRole('img')).toBeNull()
     expect(screen.getByRole('link', { name: '可信链接' })).toHaveAttribute(
       'href',

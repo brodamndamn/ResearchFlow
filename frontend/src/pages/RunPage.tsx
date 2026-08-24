@@ -2,6 +2,7 @@ import { AlertTriangle, Check, Circle, Clock3, Compass, Ellipsis, FileText, Load
 import { FormEvent, useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 
+import { EvidencePath, type EvidenceStage } from '../components/EvidencePath'
 import { cancelResearch, getResearch, subscribeToResearch, updateResearchPlan } from '../lib/api'
 import { saveRecentResearch } from '../lib/recent'
 import type { ResearchSnapshot, ResearchStatus } from '../lib/types'
@@ -17,6 +18,19 @@ const labels: Record<ResearchStatus, string> = {
   failed: '研究失败',
   cancelled: '研究已取消',
   expired: '研究已过期',
+}
+
+const statusStages: Record<ResearchStatus, EvidenceStage> = {
+  queued: 'question',
+  planning: 'plan',
+  waiting_for_review: 'plan',
+  researching: 'search',
+  writing: 'evidence',
+  verifying: 'evidence',
+  completed: 'report',
+  failed: 'evidence',
+  cancelled: 'plan',
+  expired: 'report',
 }
 
 export function RunPage() {
@@ -96,6 +110,8 @@ export function RunPage() {
         </div>
         {!terminal && <button className="ghost-button danger-button" onClick={cancel}>取消研究</button>}
       </div>
+
+      <EvidencePath currentStage={statusStages[snapshot.status]} label="当前研究证据路径" />
 
       {pageError && <p className="error-banner" role="alert">{pageError}</p>}
       {snapshot.status === 'failed' && (

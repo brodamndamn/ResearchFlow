@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom'
 
 import { AppRoutes } from './app'
 import './styles.css'
+import './evidence-workbench.css'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

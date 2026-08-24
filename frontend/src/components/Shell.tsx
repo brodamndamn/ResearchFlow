@@ -78,7 +78,7 @@ export function Shell({ children }: PropsWithChildren) {
           </Link>
         </nav>
       </header>
-      <main>{children}</main>
+      <main className="site-main">{children}</main>
       <footer>ResearchFlow · 研究结果由 AI 生成，请核验关键事实与来源</footer>
     </div>
   )
