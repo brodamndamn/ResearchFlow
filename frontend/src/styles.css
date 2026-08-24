@@ -48,49 +48,23 @@ a {
 }
 .app-shell[data-theme="light"] {
   color: #183044;
-  --navy: #eaf7fb;
+  --navy: #edf5f6;
   --panel: rgba(255, 255, 255, 0.88);
   --panel-strong: #ffffff;
   --line: rgba(48, 94, 122, 0.2);
   --cyan: #098f82;
   --cyan-soft: #087b71;
   --glass-edge: rgba(255, 255, 255, 0.58);
-  --grid-line: rgba(35, 157, 190, 0.14);
-  --frame-mint: rgba(29, 210, 184, 0.42);
-  --frame-node: rgba(44, 220, 196, 0.68);
+  --paper-dot: rgba(27, 91, 108, 0.075);
   --muted: #365a70;
   background:
-    radial-gradient(circle at 34px 34px, var(--frame-node) 0 2px, transparent 3px),
-    radial-gradient(circle at calc(100% - 34px) 34px, var(--frame-node) 0 2px, transparent 3px),
-    radial-gradient(circle at 34px calc(100% - 34px), var(--frame-node) 0 2px, transparent 3px),
-    radial-gradient(circle at calc(100% - 34px) calc(100% - 34px), var(--frame-node) 0 2px, transparent 3px),
-    linear-gradient(var(--frame-mint), var(--frame-mint)) left 34px top 34px / 132px 1px no-repeat,
-    linear-gradient(90deg, var(--frame-mint), var(--frame-mint)) left 34px top 34px / 1px 132px no-repeat,
-    linear-gradient(var(--frame-mint), var(--frame-mint)) right 34px top 34px / 132px 1px no-repeat,
-    linear-gradient(90deg, var(--frame-mint), var(--frame-mint)) right 34px top 34px / 1px 132px no-repeat,
-    linear-gradient(var(--frame-mint), var(--frame-mint)) left 34px bottom 34px / 132px 1px no-repeat,
-    linear-gradient(90deg, var(--frame-mint), var(--frame-mint)) left 34px bottom 34px / 1px 132px no-repeat,
-    linear-gradient(var(--frame-mint), var(--frame-mint)) right 34px bottom 34px / 132px 1px no-repeat,
-    linear-gradient(90deg, var(--frame-mint), var(--frame-mint)) right 34px bottom 34px / 1px 132px no-repeat,
-    linear-gradient(var(--grid-line) 1px, transparent 1px),
-    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px),
-    var(--navy);
-  background-size:
-    auto,
-    auto,
-    auto,
-    auto,
-    132px 1px,
-    1px 132px,
-    132px 1px,
-    1px 132px,
-    132px 1px,
-    1px 132px,
-    132px 1px,
-    1px 132px,
-    64px 64px,
-    64px 64px,
-    auto;
+    radial-gradient(circle at 10% -8%, rgba(56, 217, 197, 0.22), transparent 34rem),
+    radial-gradient(circle at 92% 8%, rgba(80, 160, 205, 0.16), transparent 30rem),
+    radial-gradient(circle at 50% 115%, rgba(32, 136, 151, 0.09), transparent 38rem),
+    radial-gradient(circle, var(--paper-dot) 1px, transparent 1.25px),
+    linear-gradient(180deg, #f8fbfa 0%, var(--navy) 52%, #e9f2f4 100%);
+  background-attachment: fixed;
+  background-size: auto, auto, auto, 24px 24px, auto;
 }
 .app-shell[data-theme="light"] .site-header {
   background: rgba(247, 252, 253, 0.8);

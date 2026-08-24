@@ -229,7 +229,7 @@ describe('ResearchFlow 路由', () => {
     expect(styles).toMatch(/\.header-note\s*\{[^}]*font-size:\s*16px/)
     expect(styles).toMatch(/\.header-nav-button\s*\{[^}]*min-height:\s*46px[^}]*padding:\s*0 16px[^}]*font-size:\s*16px/)
     expect(styles).toMatch(/\.header-nav-button svg\s*\{[^}]*width:\s*20px[^}]*height:\s*20px/)
-    expect(styles).toMatch(/\.app-shell\[data-theme="light"\]\s*\{[\s\S]*?--navy:\s*#eaf7fb/)
+    expect(styles).toMatch(/\.app-shell\[data-theme="light"\]\s*\{[\s\S]*?--navy:\s*#edf5f6/)
     expect(styles).toMatch(/\.app-shell\[data-theme="light"\]\s*\{[\s\S]*?--panel:\s*rgba\(255, 255, 255, 0\.88\)/)
     expect(styles).toMatch(/\.theme-toggle\s*\{[^}]*min-width:\s*46px/)
 
@@ -916,18 +916,15 @@ describe('ResearchFlow 路由', () => {
     )
   })
 
-  it('日间模式使用稀疏网格与四角薄荷数据框架', () => {
+  it('日间模式使用柔和光晕与细密纸面点阵', () => {
     expect(styles).toMatch(
-      /\.app-shell\[data-theme="light"\]\s*\{[^}]*--navy:\s*#eaf7fb[^}]*--grid-line:\s*rgba\(35, 157, 190, 0\.14\)[^}]*--frame-mint:\s*rgba\(29, 210, 184, 0\.42\)[^}]*--frame-node:\s*rgba\(44, 220, 196, 0\.68\)[^}]*--muted:\s*#365a70/,
+      /\.app-shell\[data-theme="light"\]\s*\{[^}]*--navy:\s*#edf5f6[^}]*--paper-dot:\s*rgba\(27, 91, 108, 0\.075\)[^}]*--muted:\s*#365a70/,
     )
     expect(styles).toMatch(
-      /\.app-shell\[data-theme="light"\]\s*\{[^}]*background:\s*radial-gradient\(circle at 34px 34px, var\(--frame-node\) 0 2px, transparent 3px\)[\s\S]*?linear-gradient\(var\(--grid-line\) 1px, transparent 1px\)[\s\S]*?background-size:[^}]*64px 64px,\s*64px 64px,\s*auto/,
+      /\.app-shell\[data-theme="light"\]\s*\{[^}]*background:\s*radial-gradient\(circle at 10% -8%, rgba\(56, 217, 197, 0\.22\), transparent 34rem\)[\s\S]*?radial-gradient\(circle, var\(--paper-dot\) 1px, transparent 1\.25px\)[\s\S]*?background-size:\s*auto, auto, auto, 24px 24px, auto/,
     )
     expect(styles).toMatch(
-      /linear-gradient\(var\(--frame-mint\), var\(--frame-mint\)\) left 34px top 34px\s*\/\s*132px 1px no-repeat/,
-    )
-    expect(styles).toMatch(
-      /linear-gradient\(90deg, var\(--frame-mint\), var\(--frame-mint\)\) right 34px bottom 34px\s*\/\s*1px 132px no-repeat/,
+      /\.app-shell\[data-theme="light"\]\s*\{[^}]*background-attachment:\s*fixed/,
     )
   })
 
