@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from collections.abc import AsyncIterator
 from datetime import UTC, date, datetime
 from typing import Any
 
 from langgraph.types import Command
+from pydantic import ValidationError
 from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from sqlalchemy.orm import selectinload
@@ -27,6 +29,8 @@ from app.task_queue import (
     DuplicateTaskError,
     QueueCapacityExceeded,
 )
+
+logger = logging.getLogger(__name__)
 
 TERMINAL_STATUSES = {
     ResearchStatus.COMPLETED,
@@ -520,4 +524,11 @@ class ResearchService:
     def _safe_error(error: Exception) -> str:
         if isinstance(error, TimeoutError):
             return "研究任务执行超时"
+        if isinstance(error, ValidationError):
+            logger.warning(
+                "研究任务数据校验失败：%s",
+                error.errors(include_input=False),
+            )
+        else:
+            logger.exception("研究任务执行失败：%s", type(error).__name__)
         return f"研究任务执行失败：{type(error).__name__}"
