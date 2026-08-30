@@ -6,6 +6,7 @@ from typing import Any
 
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
+from pydantic import ValidationError
 
 from app.agent.types import (
     Evidence,
@@ -99,6 +100,23 @@ class DeepSeekModelProvider:
     async def extract(
         self, topic: str, sources: list[SearchDocument]
     ) -> list[Evidence]:
+        try:
+            payload = await self._evidence_response(topic, sources)
+            return self._parse_evidence(payload, sources)
+        except (ValueError, ValidationError):
+            # OpenAI-compatible models occasionally return valid JSON with a
+            # slightly different evidence shape. Retry once with an explicit
+            # schema reminder before treating the research run as failed.
+            payload = await self._evidence_response(topic, sources, retry=True)
+            return self._parse_evidence(payload, sources)
+
+    async def _evidence_response(
+        self,
+        topic: str,
+        sources: list[SearchDocument],
+        *,
+        retry: bool = False,
+    ) -> dict[str, Any]:
         source_payload = [
             {
                 "source_id": index + 1,
@@ -113,7 +131,12 @@ class DeepSeekModelProvider:
             "每条事实必须引用存在的 source_id。固定格式："
             '{"evidence":[{"source_id":1,"claim":"事实","excerpt":"原文摘录"}]}。'
         )
-        payload = await self._json_response(
+        if retry:
+            system_prompt += (
+                "上一次输出未通过程序校验。请严格遵守固定格式：evidence 必须是数组，"
+                "source_id 必须是来源编号的整数，claim 和 excerpt 必须是非空字符串。"
+            )
+        return await self._json_response(
             ResearchMode.QUICK,
             [
                 SystemMessage(content=system_prompt),
@@ -122,6 +145,11 @@ class DeepSeekModelProvider:
                 ),
             ],
         )
+
+    @staticmethod
+    def _parse_evidence(
+        payload: dict[str, Any], sources: list[SearchDocument]
+    ) -> list[Evidence]:
         raw_items = _first_present(payload, "evidence", "evidences", "claims")
         if raw_items is _MISSING:
             raise ValueError("模型响应缺少 evidence 数组")
@@ -131,13 +159,31 @@ class DeepSeekModelProvider:
         for item in raw_items:
             if not isinstance(item, dict):
                 raise ValueError("evidence 数组成员必须是对象")
+            source_id = _first_present(
+                item, "source_id", "source_index", "citation_id", "source", "id"
+            )
+            if isinstance(source_id, dict):
+                source_id = _first_present(
+                    source_id, "source_id", "source_index", "citation_id", "id", "index"
+                )
+            if isinstance(source_id, str):
+                source_id_match = re.search(r"\d+", source_id)
+                source_id = int(source_id_match.group()) if source_id_match else source_id
             normalized_items.append(
                 {
-                    "source_id": item.get("source_id")
-                    or item.get("source_index")
-                    or item.get("citation_id"),
-                    "claim": item.get("claim") or item.get("fact") or item.get("finding"),
-                    "excerpt": item.get("excerpt") or item.get("quote") or item.get("evidence"),
+                    "source_id": source_id,
+                    "claim": _first_present(
+                        item, "claim", "fact", "finding", "statement", "summary", "text"
+                    ),
+                    "excerpt": _first_present(
+                        item,
+                        "excerpt",
+                        "quote",
+                        "evidence",
+                        "supporting_text",
+                        "source_excerpt",
+                        "content",
+                    ),
                 }
             )
         result = EvidenceBundle.model_validate({"evidence": normalized_items})

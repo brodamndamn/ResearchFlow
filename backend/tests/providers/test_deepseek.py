@@ -40,6 +40,16 @@ class FakeJsonChat:
         return AIMessage(content=content)
 
 
+class SequenceJsonChat(FakeJsonChat):
+    def __init__(self, payloads: list[dict | str]) -> None:
+        self.payloads = payloads
+        self.bound: dict | None = None
+
+    async def ainvoke(self, messages):
+        self.payload = self.payloads.pop(0)
+        return await super().ainvoke(messages)
+
+
 async def test_plan_parses_deepseek_json_without_strict_tool_schema(monkeypatch) -> None:
     provider = DeepSeekModelProvider("test-key", "https://api.deepseek.com", "model")
     chat = FakeJsonChat(
@@ -84,6 +94,53 @@ async def test_extract_normalizes_deepseek_evidence_field_names(monkeypatch) -> 
 
     assert evidence[0].source_id == 1
     assert evidence[0].claim == "框架支持工具调用"
+
+
+async def test_extract_normalizes_string_source_id_and_common_field_names(monkeypatch) -> None:
+    provider = DeepSeekModelProvider("test-key", "https://api.deepseek.com", "model")
+    monkeypatch.setattr(
+        provider,
+        "_chat",
+        lambda mode: FakeJsonChat(
+            {
+                "evidence": [
+                    {
+                        "source": "来源 [1]",
+                        "statement": "框架支持工具调用",
+                        "supporting_text": "提供工具接口",
+                    }
+                ]
+            }
+        ),
+    )
+    source = SearchDocument(
+        url="https://example.com", title="来源", content="提供工具接口", score=1
+    )
+
+    evidence = await provider.extract("Agent 框架", [source])
+
+    assert evidence[0].source_id == 1
+    assert evidence[0].claim == "框架支持工具调用"
+    assert evidence[0].excerpt == "提供工具接口"
+
+
+async def test_extract_retries_once_after_validation_error(monkeypatch) -> None:
+    provider = DeepSeekModelProvider("test-key", "https://api.deepseek.com", "model")
+    chat = SequenceJsonChat(
+        [
+            {"evidence": [{"source_id": 1, "claim": "缺少原文"}]},
+            {"evidence": [{"source_id": 1, "claim": "修正后的事实", "excerpt": "原文"}]},
+        ]
+    )
+    monkeypatch.setattr(provider, "_chat", lambda mode: chat)
+    source = SearchDocument(
+        url="https://example.com", title="来源", content="原文", score=1
+    )
+
+    evidence = await provider.extract("Agent 框架", [source])
+
+    assert evidence[0].claim == "修正后的事实"
+    assert chat.payloads == []
 
 
 async def test_extract_rejects_malformed_evidence_container(monkeypatch) -> None:
