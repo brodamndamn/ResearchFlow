@@ -1125,3 +1125,40 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+/* 小屏仅保留阅读与操作所需的层级，避免桌面展示比例挤压内容。 */
+@media (max-width: 520px) {
+  .app-shell .hero { gap: 20px; padding-top: 28px; }
+  .app-shell .hero h1 { margin: 18px 0 16px; font-size: clamp(36px, 10vw, 44px); line-height: 1.12; }
+  .app-shell .hero-copy { font-size: 15px; line-height: 1.75; }
+  .app-shell .research-console { padding: 18px; }
+  .app-shell .research-console > textarea { min-height: 132px; font-size: 16px; }
+  .app-shell .mode-card { min-height: 0; padding: 14px; }
+  .app-shell .mode-card strong { font-size: 16px; }
+  .app-shell .showcase-card, .app-shell .showcase-card:first-child { min-height: 0; padding: 20px; }
+  .app-shell .showcase-card h3, .app-shell .showcase-card:first-child h3 { margin-top: 34px; font-size: 24px; line-height: 1.3; }
+  .app-shell .case-index { font-size: 48px; }
+  .app-shell .recent-card { min-height: 0; padding: 14px; }
+  .app-shell .recent-card > a { min-width: 0; }
+  .app-shell .recent-card strong { overflow-wrap: anywhere; }
+  .app-shell .recent-delete-button { width: 44px; height: 44px; flex: 0 0 44px; }
+  .app-shell .workspace-page { padding-top: 28px; }
+  .app-shell .workspace-header { gap: 16px; padding-bottom: 22px; }
+  .app-shell .workspace-header h1 { margin: 12px 0 8px; font-size: 32px; line-height: 1.2; }
+  .app-shell .workspace-header p { font-size: 13px; line-height: 1.6; }
+  .app-shell .timeline-panel, .app-shell .review-card, .app-shell .terminal-card { padding: 18px; }
+  .app-shell .timeline-panel h2, .app-shell .review-card h2 { font-size: 22px; }
+  .app-shell .timeline-item { min-height: 62px; }
+  .app-shell .report-cover { padding: 34px 0 26px; }
+  .app-shell .report-header h1 { margin: 20px auto 16px; font-size: 34px; line-height: 1.2; }
+  .app-shell .report-layout { padding-top: 28px; }
+  .app-shell .report-toc { padding: 16px; }
+  .app-shell .markdown-body { font-size: 16px; }
+  .app-shell .markdown-body h2 { margin-top: 40px; font-size: 26px; }
+  .app-shell .markdown-body p { line-height: 1.85; }
+  .app-shell .source-card { padding: 16px 0; }
+  .confirm-overlay { align-items: flex-start; overflow-y: auto; padding: 24px 16px; }
+  .confirm-dialog { width: 100%; max-height: calc(100dvh - 48px); overflow-y: auto; }
+  .confirm-dialog-actions { flex-wrap: wrap; }
+  .confirm-dialog-actions button { min-height: 44px; }
+}
