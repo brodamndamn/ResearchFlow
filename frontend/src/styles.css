@@ -92,9 +92,10 @@ a {
   color: #183044;
 }
 .app-shell[data-theme="light"] .primary-button {
-  color: #12324a;
-  background: #b8f0e8;
-  box-shadow: 0 10px 26px rgba(8, 143, 130, 0.14);
+  color: #ffffff;
+  border-color: #0d655d;
+  background: #147d72;
+  box-shadow: 0 10px 26px rgba(20, 125, 114, 0.22);
 }
 .app-shell[data-theme="light"] .danger-button {
   color: #b4232f;
@@ -156,6 +157,13 @@ a {
   color: #b4232f;
   border-color: #f0a6ad;
   background: #fff0f1;
+}
+.app-shell[data-theme="light"] .error-banner {
+  color: #8f1b24;
+  border-color: #df7b85;
+  background: #ffe4e7;
+  font-weight: 700;
+  box-shadow: 0 8px 20px rgba(180, 35, 47, 0.12);
 }
 .app-shell[data-theme="light"] .status-cancelled,
 .app-shell[data-theme="light"] .recent-status.status-cancelled {

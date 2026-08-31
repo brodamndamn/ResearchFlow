@@ -852,7 +852,7 @@ describe('ResearchFlow 路由', () => {
 
   it('日间模式为操作按钮、锁定计划和状态标签提供清晰的对比色', () => {
     expect(styles).toMatch(
-      /\.app-shell\[data-theme="light"\] \.primary-button\s*\{[^}]*color:\s*#12324a[^}]*background:\s*#b8f0e8/,
+      /\.app-shell\[data-theme="light"\] \.primary-button\s*\{[^}]*color:\s*#ffffff[^}]*background:\s*#147d72/,
     )
     expect(styles).toMatch(
       /\.app-shell\[data-theme="light"\] \.locked-plan-card\s*\{[^}]*filter:\s*none/,
@@ -900,7 +900,7 @@ describe('ResearchFlow 路由', () => {
 
   it('日间模式使用浅色操作按钮，并为每个进行中阶段提供不同且清晰的状态', () => {
     expect(styles).toMatch(
-      /\.app-shell\[data-theme="light"\] \.primary-button\s*\{[^}]*background:\s*#b8f0e8/,
+      /\.app-shell\[data-theme="light"\] \.primary-button\s*\{[^}]*background:\s*#147d72/,
     )
     expect(styles).toMatch(
       /\.app-shell\[data-theme="light"\] \.workspace-page \.ghost-button\.danger-button\s*\{[^}]*color:\s*#b4232f[^}]*background:\s*#fff0f1/,
@@ -1066,7 +1066,7 @@ describe('ResearchFlow 路由', () => {
     expect(screen.getByText('2 个来源')).toBeInTheDocument()
     expect(screen.getByText('1 处引用')).toBeInTheDocument()
     expect(screen.getByText('73 秒')).toBeInTheDocument()
-    expect(screen.getByText('[1]')).toBeInTheDocument()
+    expect(screen.getAllByText('[1]').length).toBeGreaterThanOrEqual(2)
     expect(screen.getByText('[2]')).toBeInTheDocument()
     const evidencePath = screen.getByRole('list', { name: '已完成研究证据路径' })
     expect(within(evidencePath).getByText('报告')).toHaveAttribute('aria-current', 'step')
@@ -1088,7 +1088,9 @@ describe('ResearchFlow 路由', () => {
     expect(styles).toMatch(/\.report-header\s*\{[^}]*padding:\s*24px 0 40px/)
     expect(styles).toMatch(/\.report-header \.eyebrow\s*\{[^}]*gap:\s*8px[^}]*padding:\s*8px 14px[^}]*font-size:\s*16px/)
     expect(styles).toMatch(/\.report-header \.eyebrow svg\s*\{[^}]*width:\s*18px[^}]*height:\s*18px/)
-    expect(screen.getByText('[1]').closest('.source-card')).not.toBeNull()
+    expect(document.getElementById('source-1')).toHaveClass('source-card')
+    const citationLink = within(screen.getByTestId('markdown-report')).getByRole('link', { name: '[1]' })
+    expect(citationLink).toHaveAttribute('href', '#source-1')
     expect(styles).toMatch(/\.report-toc\s*\{[^}]*padding:\s*28px/)
     expect(styles).toMatch(/\.report-toc \.kicker\s*\{[^}]*font-size:\s*16px/)
     expect(styles).toMatch(/\.report-toc a\s*\{[^}]*font-size:\s*18px[^}]*padding:\s*12px 0 12px 16px/)
@@ -1116,6 +1118,11 @@ describe('ResearchFlow 路由', () => {
 
     await user.click(screen.getByRole('button', { name: '复制报告链接' }))
     expect(writeText).toHaveBeenCalledWith(expect.stringContaining('/research/report/research-1'))
+
+    await user.click(citationLink)
+    expect(document.getElementById('source-1')).toHaveClass('citation-highlight')
+    expect(workbenchStyles).toMatch(/\.markdown-body \.citation-link\s*\{[^}]*color:\s*var\(--workbench-accent\)/)
+    expect(workbenchStyles).toMatch(/\.source-card\.citation-highlight\s*\{[^}]*animation:\s*citation-source-highlight 2\.6s/)
   })
 })
 

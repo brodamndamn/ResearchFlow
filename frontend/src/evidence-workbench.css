@@ -282,6 +282,9 @@
 
 .app-shell[data-theme="light"] .primary-button {
   color: #ffffff;
+  border-color: #0d655d;
+  background: #147d72;
+  box-shadow: 6px 6px 0 rgba(20, 125, 114, 0.18);
 }
 
 .app-shell .research-scope {
@@ -651,6 +654,26 @@
   background: var(--workbench-surface);
 }
 
+.app-shell .report-header .copy-link-button:not(:disabled):hover,
+.app-shell .report-header .copy-link-button:focus-visible {
+  color: var(--workbench-accent);
+  border-color: var(--workbench-accent);
+  background: color-mix(in srgb, var(--workbench-accent) 12%, var(--workbench-surface));
+  box-shadow: 4px 4px 0 color-mix(in srgb, var(--workbench-accent) 18%, transparent);
+  transform: translate(-2px, -2px);
+}
+
+.app-shell .report-header .copy-link-button.is-copied {
+  color: var(--workbench-accent);
+  border-color: var(--workbench-accent);
+  background: color-mix(in srgb, var(--workbench-accent) 14%, var(--workbench-surface));
+}
+
+.app-shell .report-header .copy-link-button.is-failed {
+  color: #b4232f;
+  border-color: #b4232f;
+}
+
 .app-shell .report-layout {
   grid-template-columns: 238px minmax(0, 760px);
   gap: clamp(42px, 6vw, 76px);
@@ -771,6 +794,53 @@
 .app-shell .source-card-link:focus-visible .source-open-icon {
   color: var(--workbench-accent);
   transform: translate(2px, -2px);
+}
+
+.app-shell .markdown-body .citation-link {
+  color: var(--workbench-accent);
+  font-family: var(--workbench-utility);
+  font-weight: 700;
+  text-decoration: none;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  transition: color 160ms ease, text-decoration-color 160ms ease;
+}
+
+.app-shell .markdown-body .citation-link:hover,
+.app-shell .markdown-body .citation-link:focus-visible {
+  color: var(--workbench-evidence);
+  text-decoration: underline;
+}
+
+.app-shell[data-theme="light"] .markdown-body .citation-link {
+  color: #245fc0;
+  text-decoration: underline;
+  text-decoration-color: rgba(36, 95, 192, 0.42);
+  text-decoration-thickness: 1.5px;
+}
+
+.app-shell[data-theme="light"] .markdown-body .citation-link:hover,
+.app-shell[data-theme="light"] .markdown-body .citation-link:focus-visible {
+  color: #6339aa;
+  text-decoration-color: #6339aa;
+  text-decoration-thickness: 3px;
+}
+
+.app-shell .source-card.citation-highlight {
+  padding-inline: 18px;
+  border-color: var(--workbench-accent);
+  animation: citation-source-highlight 2.6s ease-out both;
+}
+
+@keyframes citation-source-highlight {
+  0%, 70% {
+    background: color-mix(in srgb, var(--workbench-accent) 16%, var(--workbench-surface));
+    box-shadow: inset 4px 0 0 var(--workbench-accent), 0 0 24px color-mix(in srgb, var(--workbench-accent) 18%, transparent);
+  }
+  100% {
+    background: transparent;
+    box-shadow: inset 0 0 0 transparent, 0 0 0 transparent;
+  }
 }
 
 .app-shell[data-theme="light"] .source-card {

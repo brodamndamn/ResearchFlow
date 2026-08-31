@@ -1,5 +1,5 @@
 import { Check, Clock3, Copy, ExternalLink, Link2, Quote, SearchCheck } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import { useParams } from 'react-router-dom'
 import remarkGfm from 'remark-gfm'
@@ -12,7 +12,9 @@ export function ReportPage() {
   const { id = '' } = useParams()
   const [report, setReport] = useState<ResearchReport>()
   const [error, setError] = useState('')
-  const [copied, setCopied] = useState(false)
+  const [copyState, setCopyState] = useState<'idle' | 'copied' | 'failed'>('idle')
+  const [highlightedSource, setHighlightedSource] = useState<number | null>(null)
+  const highlightTimer = useRef<number | undefined>(undefined)
 
   useEffect(() => {
     let active = true
@@ -31,13 +33,31 @@ export function ReportPage() {
     }
   }, [id])
 
+  useEffect(() => () => window.clearTimeout(highlightTimer.current), [])
+
   const headings = useMemo(() => extractHeadings(report?.markdown || ''), [report])
+  const linkedMarkdown = useMemo(
+    () => linkCitations(report?.markdown || '', report?.sources.length || 0),
+    [report],
+  )
 
   async function copyLink() {
     const url = new URL(`/research/report/${id}`, window.location.origin).toString()
-    await navigator.clipboard.writeText(url)
-    setCopied(true)
-    window.setTimeout(() => setCopied(false), 1_500)
+    try {
+      await copyText(url)
+      setCopyState('copied')
+    } catch {
+      setCopyState('failed')
+    }
+    window.setTimeout(() => setCopyState('idle'), 1_800)
+  }
+
+  function focusSource(sourceIndex: number) {
+    window.clearTimeout(highlightTimer.current)
+    setHighlightedSource(sourceIndex)
+    window.history.replaceState(null, '', `#source-${sourceIndex}`)
+    document.getElementById(`source-${sourceIndex}`)?.scrollIntoView?.({ behavior: 'smooth', block: 'center' })
+    highlightTimer.current = window.setTimeout(() => setHighlightedSource(null), 2_600)
   }
 
   if (error) return <section className="section-wrap page-state"><p className="error-banner" role="alert">{error}</p></section>
@@ -54,7 +74,13 @@ export function ReportPage() {
           <span><Clock3 size={17} /> {report.durationSeconds} 秒</span>
         </div>
         <EvidencePath currentStage="report" label="已完成研究证据路径" />
-        <button className="ghost-button" onClick={copyLink}>{copied ? <Check size={17} /> : <Copy size={17} />}{copied ? '已复制' : '复制报告链接'}</button>
+        <button
+          className={`ghost-button copy-link-button ${copyState === 'copied' ? 'is-copied' : ''} ${copyState === 'failed' ? 'is-failed' : ''}`}
+          onClick={copyLink}
+        >
+          {copyState === 'copied' ? <Check size={17} /> : <Copy size={17} />}
+          {copyState === 'copied' ? '链接已复制' : copyState === 'failed' ? '复制失败，请手动复制' : '复制报告链接'}
+        </button>
       </header>
 
       <div className="report-layout">
@@ -73,12 +99,16 @@ export function ReportPage() {
               components={{
                 h2: ({ children }) => <h2 id={slugify(String(children))}>{children}</h2>,
                 h3: ({ children }) => <h3 id={slugify(String(children))}>{children}</h3>,
-                a: ({ children, href }) => safeExternalUrl(href || '') ? (
-                  <a href={href} target="_blank" rel="noreferrer">{children}</a>
-                ) : <span>{children}</span>,
+                a: ({ children, href }) => {
+                  const sourceIndex = citationIndex(href || '')
+                  if (sourceIndex) {
+                    return <a className="citation-link" href={href} onClick={(event) => { event.preventDefault(); focusSource(sourceIndex) }}>{children}</a>
+                  }
+                  return safeExternalUrl(href || '') ? <a href={href} target="_blank" rel="noreferrer">{children}</a> : <span>{children}</span>
+                },
               }}
             >
-              {report.markdown}
+              {linkedMarkdown}
             </ReactMarkdown>
           </div>
 
@@ -86,7 +116,7 @@ export function ReportPage() {
             <div className="section-heading"><div><span className="kicker">证据可追溯</span><h2>参考来源</h2></div></div>
             <div className="source-list">
               {report.sources.map((source, index) => (
-                <SourceCard source={source} index={index} key={source.id} />
+                <SourceCard source={source} index={index} highlighted={highlightedSource === index + 1} key={source.id} />
               ))}
             </div>
           </section>
@@ -96,7 +126,28 @@ export function ReportPage() {
   )
 }
 
-function SourceCard({ source, index }: { source: ReportSource; index: number }) {
+async function copyText(text: string) {
+  if (navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(text)
+      return
+    } catch {
+      // HTTP 页面或浏览器权限限制下，继续使用兼容方案。
+    }
+  }
+
+  const textarea = document.createElement('textarea')
+  textarea.value = text
+  textarea.setAttribute('readonly', '')
+  textarea.style.cssText = 'position:fixed;opacity:0;pointer-events:none;'
+  document.body.append(textarea)
+  textarea.select()
+  const copied = document.execCommand('copy')
+  textarea.remove()
+  if (!copied) throw new Error('Clipboard copy failed')
+}
+
+function SourceCard({ source, index, highlighted }: { source: ReportSource; index: number; highlighted: boolean }) {
   const hasSafeUrl = safeExternalUrl(source.url)
   const content = (
     <>
@@ -114,7 +165,8 @@ function SourceCard({ source, index }: { source: ReportSource; index: number }) 
 
   return hasSafeUrl ? (
     <a
-      className="source-card source-card-link"
+      className={`source-card source-card-link ${highlighted ? 'citation-highlight' : ''}`}
+      id={`source-${index + 1}`}
       href={source.url}
       target="_blank"
       rel="noreferrer"
@@ -123,7 +175,7 @@ function SourceCard({ source, index }: { source: ReportSource; index: number }) 
       {content}
     </a>
   ) : (
-    <div className="source-card">{content}</div>
+    <div className={`source-card ${highlighted ? 'citation-highlight' : ''}`} id={`source-${index + 1}`}>{content}</div>
   )
 }
 
@@ -132,6 +184,23 @@ function extractHeadings(markdown: string) {
     const match = /^(##|###)\s+(.+)$/.exec(line.trim())
     return match ? [{ level: match[1].length, text: match[2], id: slugify(match[2]) }] : []
   })
+}
+
+function linkCitations(markdown: string, sourceCount: number) {
+  let insideCodeBlock = false
+  return markdown.split('\n').map((line) => {
+    if (line.trimStart().startsWith('```')) insideCodeBlock = !insideCodeBlock
+    if (insideCodeBlock) return line
+    return line.replace(/\[(\d+)]/g, (citation, value: string) => {
+      const sourceIndex = Number(value)
+      return sourceIndex >= 1 && sourceIndex <= sourceCount ? `[\\[${sourceIndex}\\]](#source-${sourceIndex})` : citation
+    })
+  }).join('\n')
+}
+
+function citationIndex(href: string) {
+  const match = /^#source-(\d+)$/.exec(href)
+  return match ? Number(match[1]) : null
 }
 
 function slugify(value: string) {
