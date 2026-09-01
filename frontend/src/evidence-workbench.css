@@ -1231,3 +1231,38 @@
   .confirm-dialog-actions { flex-wrap: wrap; }
   .confirm-dialog-actions button { min-height: 44px; }
 }
+@media (prefers-reduced-motion: no-preference) {
+  .app-shell .hero-intro > .eyebrow,
+  .app-shell .hero h1,
+  .app-shell .hero-copy,
+  .app-shell .evidence-path,
+  .app-shell .research-console,
+  .app-shell .research-scope,
+  .app-shell .home-section,
+  .app-shell footer {
+    opacity: 0;
+    animation: researchHomeReveal 560ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  }
+
+  .app-shell .hero-intro > .eyebrow { animation-delay: 60ms; }
+  .app-shell .hero h1 { animation-delay: 130ms; }
+  .app-shell .hero-copy { animation-delay: 210ms; }
+  .app-shell .evidence-path { animation-delay: 290ms; }
+  .app-shell .research-console { animation-delay: 370ms; }
+  .app-shell .research-scope { animation-delay: 470ms; }
+  .app-shell .home-section:nth-of-type(2) { animation-delay: 580ms; }
+  .app-shell .home-section:nth-of-type(3) { animation-delay: 680ms; }
+  .app-shell footer { animation-delay: 780ms; }
+}
+
+@keyframes researchHomeReveal {
+  from {
+    opacity: 0;
+    translate: 0 14px;
+  }
+
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
