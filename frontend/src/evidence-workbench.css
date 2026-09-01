@@ -1128,6 +1128,75 @@
 
 /* 小屏仅保留阅读与操作所需的层级，避免桌面展示比例挤压内容。 */
 @media (max-width: 520px) {
+  .app-shell .recent-section .section-heading,
+  .app-shell .sources-section .section-heading {
+    align-items: flex-start;
+    justify-content: flex-start;
+    text-align: left;
+  }
+
+  .app-shell .recent-card {
+    position: relative;
+    display: block;
+    min-height: 0;
+    padding: 16px;
+  }
+
+  .app-shell .recent-card > a {
+    display: grid;
+    grid-template-columns: 32px minmax(0, 1fr) auto;
+    grid-template-areas:
+      "clock title title"
+      ". status status"
+      ". mode arrow";
+    gap: 8px 12px;
+    min-width: 0;
+    padding-right: 52px;
+  }
+
+  .app-shell .recent-card > a > svg:first-child {
+    grid-area: clock;
+    align-self: start;
+    margin-top: 4px;
+  }
+
+  .app-shell .recent-card > a > svg:last-child {
+    grid-area: arrow;
+    align-self: center;
+  }
+
+  .app-shell .recent-card .recent-copy {
+    display: contents;
+  }
+
+  .app-shell .recent-card .recent-copy strong {
+    display: -webkit-box;
+    grid-area: title;
+    overflow: hidden;
+    min-width: 0;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    line-height: 1.45;
+  }
+
+  .app-shell .recent-card .recent-status {
+    grid-area: status;
+    justify-self: start;
+  }
+
+  .app-shell .recent-card .recent-mode-pill {
+    grid-area: mode;
+    justify-self: start;
+    margin-top: 4px;
+  }
+
+  .app-shell .recent-delete-button {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 44px;
+    height: 44px;
+  }
   .app-shell .hero { gap: 20px; padding-top: 28px; }
   .app-shell .hero h1 { margin: 18px 0 16px; font-size: clamp(36px, 10vw, 44px); line-height: 1.12; }
   .app-shell .hero-copy { font-size: 15px; line-height: 1.75; }
