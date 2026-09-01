@@ -216,7 +216,9 @@ class DeepSeekModelProvider:
             item.get("query", "") if isinstance(item, dict) else item
             for item in raw_queries
         ]
-        result = GapQueries.model_validate({"queries": raw_queries})
+        # 模型偶尔会忽略“最多两条”的提示。先截断再校验，避免多余查询
+        # 让整个深度研究任务失败；工作流仍只会实际执行其中第一条。
+        result = GapQueries.model_validate({"queries": raw_queries[:2]})
         return result.queries[:1]
 
     async def write(

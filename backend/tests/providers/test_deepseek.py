@@ -187,3 +187,18 @@ async def test_plan_accepts_uppercase_json_fence(monkeypatch) -> None:
     plan = await provider.plan("Agent 框架选型", ResearchMode.QUICK, 1)
 
     assert plan.focus == "工程选型"
+
+
+async def test_find_gaps_truncates_extra_model_queries_before_validation(monkeypatch) -> None:
+    provider = DeepSeekModelProvider("test-key", "https://api.deepseek.com", "model")
+    monkeypatch.setattr(
+        provider,
+        "_chat",
+        lambda mode: FakeJsonChat(
+            {"queries": ["补充政策", "补充数据", "补充案例", "补充成本", "补充风险"]}
+        ),
+    )
+
+    queries = await provider.find_gaps("低空经济", [])
+
+    assert queries == ["补充政策"]
